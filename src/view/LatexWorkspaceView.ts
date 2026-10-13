@@ -1,7 +1,7 @@
-import { Menu, Notice, Platform, TFile, TextFileView, WorkspaceLeaf, setIcon, type ViewStateResult } from "obsidian";
+import { Menu, Notice, Platform, Scope, TFile, TextFileView, WorkspaceLeaf, setIcon, type ViewStateResult } from "obsidian";
 import * as fsp from "node:fs/promises";
 import * as path from "node:path";
-import { Annotation, Compartment, EditorState, Prec, type Extension } from "@codemirror/state";
+import { Annotation, Compartment, EditorState, Prec, Transaction, type Extension } from "@codemirror/state";
 import { EditorView, drawSelection, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers } from "@codemirror/view";
 import { bracketMatching, indentUnit } from "@codemirror/language";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
@@ -57,6 +57,7 @@ export class LatexWorkspaceView extends TextFileView {
   private pdfLoadedFor = "";
   private bindToken = 0;
   private manualSave = false;
+  private lastManualSave = 0;
   private currentRoot = "";
   /** Content last read from or written to disk; the editor has unsaved edits when it differs. */
   private diskData: string | null = null;
@@ -65,6 +66,9 @@ export class LatexWorkspaceView extends TextFileView {
     super(leaf);
     this.plugin = plugin;
     this.navigation = true;
+    // Mod-s through Obsidian's keymap too: the editor keymap alone never sees it if Obsidian handles the key first
+    this.scope = new Scope(this.app.scope);
+    this.scope.register(["Mod"], "s", () => (this.saveAndCompile(), false));
   }
 
   getViewType() {
@@ -121,6 +125,7 @@ export class LatexWorkspaceView extends TextFileView {
   async onClose() {
     if (this.ratioSaveTimer) window.clearTimeout(this.ratioSaveTimer);
     this.unbindSession();
+    this.session = null;
     this.resizeObs?.disconnect();
     this.pdf?.dispose();
     this.pdf = null;
@@ -142,7 +147,7 @@ export class LatexWorkspaceView extends TextFileView {
       if (this.lastDiags.length) this.applyEditorDiagnostics();
     } else if (data !== this.editor.state.doc.toString()) {
       const sel = this.editor.state.selection.main;
-      this.editor.dispatch({ changes: { from: 0, to: this.editor.state.doc.length, insert: data }, selection: { anchor: Math.min(sel.head, data.length) }, annotations: External.of(true) });
+      this.editor.dispatch({ changes: { from: 0, to: this.editor.state.doc.length, insert: data }, selection: { anchor: Math.min(sel.head, data.length) }, annotations: [External.of(true), Transaction.addToHistory.of(false)] });
     }
     this.applyLayoutForFile();
     if (this.pendingReveal) {
@@ -207,6 +212,16 @@ export class LatexWorkspaceView extends TextFileView {
     }
   }
 
+  /** Save now and recompile; both the view scope and the editor keymap call this, so one key press runs it once. */
+  private saveAndCompile(): boolean {
+    const now = Date.now();
+    if (now - this.lastManualSave < 250) return true;
+    this.lastManualSave = now;
+    this.manualSave = true;
+    void this.save();
+    return true;
+  }
+
   onPaneMenu(menu: Menu, source: string): void {
     super.onPaneMenu(menu, source);
     if (source !== "more-options" && source !== "tab-header") return;
@@ -266,7 +281,7 @@ export class LatexWorkspaceView extends TextFileView {
     const ext = this.file?.extension ?? "tex";
     const keys = keymap.of([
       { key: "Mod-Enter", run: () => (void this.recompile(), true) },
-      { key: "Mod-s", run: () => ((this.manualSave = true), void this.save(), true) },
+      { key: "Mod-s", run: () => this.saveAndCompile() },
       { key: "Mod-/", run: toggleComment },
       { key: "Mod-b", run: bold },
       { key: "Mod-i", run: italic },
@@ -351,7 +366,7 @@ export class LatexWorkspaceView extends TextFileView {
     this.recompileBtn.addClass("tp-action-recompile");
     this.layoutBtn = this.addAction("columns-2", "Layout", (e) => this.layoutMenu(e));
     this.syncBtn = this.addAction("locate", "Sync to PDF", () => void this.syncToPdf());
-    this.logBtn = this.addAction("alert-triangle", "Log", () => this.toggleLog());
+    this.logBtn = this.addAction("triangle-alert", "Log", () => this.toggleLog());
     this.logBtn.addClass("tp-action-log");
   }
 
@@ -483,6 +498,7 @@ export class LatexWorkspaceView extends TextFileView {
   }
 
   private unbindSession() {
+    if (this.unlisten) this.plugin.schedulePruneSessions();
     this.unlisten?.();
     this.unlisten = null;
   }

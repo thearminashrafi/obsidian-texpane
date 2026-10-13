@@ -23,6 +23,7 @@ export default class TexPanePlugin extends Plugin {
   private lastLatexView: LatexWorkspaceView | null = null;
   private focusPrev: { left: boolean; right: boolean } | null = null;
   private toolchainPromise: Promise<ToolchainInfo> | null = null;
+  private pruneTimer: number | null = null;
 
   async onload() {
     await this.loadSettings();
@@ -37,7 +38,7 @@ export default class TexPanePlugin extends Plugin {
 
     this.statusEl = this.addStatusBarItem();
     this.statusEl.addClass("tp-status");
-    this.statusEl.addEventListener("click", () => this.activeLatexView()?.toggleLog());
+    this.registerDomEvent(this.statusEl, "click", () => this.activeLatexView()?.toggleLog());
     this.statusEl.hide();
 
     this.addCommands();
@@ -60,6 +61,8 @@ export default class TexPanePlugin extends Plugin {
   }
 
   onunload() {
+    if (this.pruneTimer) window.clearTimeout(this.pruneTimer);
+    this.pruneTimer = null;
     for (const s of this.sessions.values()) s.dispose();
     this.sessions.clear();
     document.body.removeClass("texpane-focus");
@@ -121,6 +124,21 @@ export default class TexPanePlugin extends Plugin {
       this.sessions.set(info.rootAbsPath, s);
     } else s.project = info;
     return s;
+  }
+
+  /** Dispose sessions no open TeX view uses any more (after a short grace period, so a view switching files keeps its session):
+   * otherwise vault events keep compiling closed projects in the background. */
+  schedulePruneSessions() {
+    if (this.pruneTimer) window.clearTimeout(this.pruneTimer);
+    this.pruneTimer = window.setTimeout(() => {
+      this.pruneTimer = null;
+      const used = new Set(this.latexViews().map((v) => v.getSession()));
+      for (const [root, s] of this.sessions) {
+        if (used.has(s)) continue;
+        s.dispose();
+        this.sessions.delete(root);
+      }
+    }, 3000);
   }
 
   registerEmbedGraph(_s: ProjectSession) {
@@ -219,14 +237,13 @@ export default class TexPanePlugin extends Plugin {
     });
     this.addCommand({ id: "next-error", name: "Next problem", icon: "arrow-down", hotkeys: [{ modifiers: [], key: "F8" }], checkCallback: withView((v) => v.nextProblem(1)) });
     this.addCommand({ id: "previous-error", name: "Previous problem", icon: "arrow-up", hotkeys: [{ modifiers: ["Shift"], key: "F8" }], checkCallback: withView((v) => v.nextProblem(-1)) });
-    this.addCommand({ id: "toggle-log", name: "Toggle log drawer", icon: "alert-triangle", hotkeys: [{ modifiers: ["Mod", "Alt"], key: "l" }], checkCallback: withView((v) => v.toggleLog()) });
+    this.addCommand({ id: "toggle-log", name: "Toggle log drawer", icon: "triangle-alert", hotkeys: [{ modifiers: ["Mod", "Alt"], key: "l" }], checkCallback: withView((v) => v.toggleLog()) });
     this.addCommand({ id: "cycle-layout", name: "Cycle layout (split, editor, PDF)", icon: "columns-2", hotkeys: [{ modifiers: ["Mod", "Alt"], key: "v" }], checkCallback: withView((v) => v.cycleLayout()) });
-    this.addCommand({ id: "toggle-focus", name: "Toggle focus mode", icon: "maximize", hotkeys: [{ modifiers: ["Mod", "Alt"], key: "f" }], callback: () => this.toggleFocus() });
+    this.addCommand({ id: "toggle-focus", name: "Toggle focus mode", icon: "maximize", callback: () => this.toggleFocus() });
     this.addCommand({
       id: "embed-note",
       name: "Embed note…",
       icon: "file-input",
-      hotkeys: [{ modifiers: ["Mod", "Shift"], key: "e" }],
       checkCallback: withView((v) => new EmbedNoteModal(this.app, (f) => v.insertAtCursor(`\\obsidian{${this.notes.nameFor(f)}}`)).open()),
     });
     this.addCommand({ id: "bold", name: "Bold (\\textbf)", icon: "bold", checkCallback: withView((v) => v.getEditor() && import("./editor/editing").then((m) => m.bold(v.getEditor()))) });

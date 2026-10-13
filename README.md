@@ -38,13 +38,13 @@ Notes are converted to LaTeX at build time (headings, emphasis, lists, links, fo
 | Action | Default |
 | --- | --- |
 | Recompile | Cmd/Ctrl+Enter (in editor) |
-| Save | Cmd/Ctrl+S |
+| Save and recompile | Cmd/Ctrl+S |
 | Forward search | Cmd/Ctrl+Alt+J |
 | Next / previous problem | F8 / Shift+F8 |
 | Toggle log drawer | Cmd/Ctrl+Alt+L |
 | Cycle layout | Cmd/Ctrl+Alt+V |
-| Focus mode | Cmd/Ctrl+Alt+F |
-| Embed note | Cmd/Ctrl+Shift+E |
+| Focus mode | none (Cmd+Option+F is Obsidian's search and replace on macOS) |
+| Embed note | none (assign one under Hotkeys) |
 | Bold / italic | Cmd/Ctrl+B / I |
 | Toggle comment | Cmd/Ctrl+/ |
 

@@ -44,13 +44,15 @@ export function killTree(child: ChildProcess, platform: NodeJS.Platform = proces
       } catch {
         child.kill("SIGTERM");
       }
-      setTimeout(() => {
+      const t = setTimeout(() => {
         try {
           process.kill(-pid, "SIGKILL");
         } catch {
           /* already gone */
         }
-      }, 2000).unref();
+      }, 2000);
+      // Electron's renderer setTimeout returns a number (no unref)
+      (t as { unref?: () => void }).unref?.();
     }
   } catch {
     /* ignore */
@@ -75,6 +77,8 @@ export function runLatexmk(o: RunOptions): Promise<RunnerResult> {
     let cancelled = false;
     let settled = false;
     let child: ChildProcess;
+    // cancelled before start (e.g. plugin unloading): never spawn
+    if (o.signal?.aborted) return resolve({ exitCode: null, output: "", timedOut: false, cancelled: true, durationMs: 0 });
     const finish = (r: Partial<RunnerResult>) => {
       if (settled) return;
       settled = true;

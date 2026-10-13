@@ -25,7 +25,9 @@ export class PromptModal extends Modal {
   onOpen() {
     const { contentEl } = this;
     contentEl.empty();
-    this.setTitle(this.title);
+    // Modal.setTitle is missing on older 1.x builds; minAppVersion is 1.8.0
+    if (typeof (this as Partial<Modal>).setTitle === "function") this.setTitle(this.title);
+    else this.titleEl.setText(this.title);
     let input: HTMLInputElement | null = null;
     new Setting(contentEl).addText((t) => {
       input = t.inputEl;

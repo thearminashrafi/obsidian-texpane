@@ -7,7 +7,7 @@ export interface LogDrawerCallbacks {
   label(file: string): string;
 }
 
-const ICONS: Record<Severity, string> = { error: "x-circle", warning: "alert-triangle", info: "info" };
+const ICONS: Record<Severity, string> = { error: "circle-x", warning: "triangle-alert", info: "info" };
 
 /** Bottom drawer: Problems (tree-item list) and Raw log tabs. Styled with Obsidian's search-results classes. */
 export class LogDrawer {

@@ -35,7 +35,7 @@ Prerequisites: MacTeX or BasicTeX with latexmk, Obsidian 1.8+, a scratch vault. 
 ## M5 `\obsidian` embeds
 1. Open `embed/main.tex`. Build succeeds; PDF contains the embedded Lit review (headings, math, table, image, nested embed). The cycle fixture yields a warning, not a hang.
 2. `\obsidian{Lit review#Heading}` and `#^block` select the section/block only.
-3. Type `\obsidian{[[`: note completion lists vault notes. Cmd+Shift+E opens the note picker.
+3. Type `\obsidian{[[`: note completion lists vault notes. The "Embed note…" command opens the note picker.
 4. Chips display for `\obsidian` lines; hovering shows a preview; clicking opens the note.
 5. Edit the embedded note in Obsidian: auto-recompile triggers (or on next save); PDF updates.
 6. Introduce a LaTeX error via a note (e.g. unmatched `$`): the diagnostic points at the `\obsidian` line and shows the note line.
@@ -44,7 +44,7 @@ Prerequisites: MacTeX or BasicTeX with latexmk, Obsidian 1.8+, a scratch vault. 
 ## M6 Polish and release
 1. Native look: switch light/dark and a community theme; editor, drawer, chips use theme colours. Syntax colours change with the "Syntax colours" setting.
 2. PDF dark mode toggle works.
-3. Focus mode (Cmd+Opt+F) hides sidebars and restores them.
+3. The "Toggle focus mode" command hides sidebars and restores them.
 4. New LaTeX project / file commands create from templates. Clean build files removes the build folder. Reveal PDF opens Finder.
 5. Close a file mid-build and quit Obsidian: no stray `latexmk`/`pdflatex` processes (`pgrep -fl latexmk`).
 6. `release/` holds exactly main.js, manifest.json, styles.css.

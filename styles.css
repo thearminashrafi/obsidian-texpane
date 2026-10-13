@@ -67,7 +67,7 @@
 .tp-root.layout-pdf .tp-pdf-pane { flex: 1 1 0 !important; }
 .tp-root.is-narrow .tp-main { flex-direction: column; }
 .tp-root.is-narrow .tp-divider { cursor: row-resize; flex-basis: 6px; }
-.is-hidden { display: none !important; }
+.workspace-leaf-content[data-type="texpane-workspace"] .is-hidden { display: none !important; }
 .tp-spacer { flex: 1 1 auto; }
 
 /* header actions */
@@ -121,8 +121,8 @@
 .texpane-view .cm-searchMatch { background: var(--text-highlight-bg); }
 .texpane-view .cm-searchMatch.cm-searchMatch-selected { background: var(--text-selection); outline: 1px solid var(--interactive-accent); }
 
-/* tooltips (autocomplete, lint) */
-.cm-tooltip {
+/* tooltips (autocomplete, lint); scoped so Obsidian's own Markdown editor keeps its look */
+.texpane-view .cm-tooltip {
   background: var(--background-secondary) !important;
   border: 1px solid var(--background-modifier-border) !important;
   border-radius: var(--radius-m);
@@ -130,12 +130,12 @@
   color: var(--text-normal) !important;
   font-family: var(--font-interface);
 }
-.cm-tooltip-autocomplete > ul { font-family: var(--font-monospace) !important; }
-.cm-tooltip-autocomplete > ul > li { padding: 1px 8px !important; }
-.cm-tooltip-autocomplete > ul > li[aria-selected] { background: var(--interactive-accent) !important; color: var(--text-on-accent) !important; }
-.cm-completionDetail { color: var(--text-muted); font-style: normal !important; margin-left: 1em; }
-.cm-tooltip-autocomplete > ul > li[aria-selected] .cm-completionDetail { color: var(--text-on-accent); opacity: 0.8; }
-.cm-completionInfo { background: var(--background-secondary) !important; }
+.texpane-view .cm-tooltip-autocomplete > ul { font-family: var(--font-monospace) !important; }
+.texpane-view .cm-tooltip-autocomplete > ul > li { padding: 1px 8px !important; }
+.texpane-view .cm-tooltip-autocomplete > ul > li[aria-selected] { background: var(--interactive-accent) !important; color: var(--text-on-accent) !important; }
+.texpane-view .cm-completionDetail { color: var(--text-muted); font-style: normal !important; margin-left: 1em; }
+.texpane-view .cm-tooltip-autocomplete > ul > li[aria-selected] .cm-completionDetail { color: var(--text-on-accent); opacity: 0.8; }
+.texpane-view .cm-completionInfo { background: var(--background-secondary) !important; }
 
 /* lint markers: native colours instead of the library's fixed ones */
 .texpane-view .cm-lintRange { background-image: none !important; text-decoration-line: underline; text-decoration-style: wavy; text-underline-offset: 3px; }
@@ -147,10 +147,10 @@
 .texpane-view .cm-lint-marker-warning { background-color: var(--color-orange); }
 .texpane-view .cm-lint-marker-info { background-color: var(--color-blue); }
 .texpane-view .cm-gutter-lint { width: 14px; }
-.cm-diagnostic { border-left-width: 3px !important; padding: 3px 6px !important; }
-.cm-diagnostic-error { border-left-color: var(--text-error) !important; }
-.cm-diagnostic-warning { border-left-color: var(--color-orange) !important; }
-.cm-diagnostic-info { border-left-color: var(--color-blue) !important; }
+.texpane-view .cm-diagnostic { border-left-width: 3px !important; padding: 3px 6px !important; }
+.texpane-view .cm-diagnostic-error { border-left-color: var(--text-error) !important; }
+.texpane-view .cm-diagnostic-warning { border-left-color: var(--color-orange) !important; }
+.texpane-view .cm-diagnostic-info { border-left-color: var(--color-blue) !important; }
 
 /* \obsidian{...} chips */
 .tp-embed-chip {
@@ -219,18 +219,19 @@
   font-size: var(--font-ui-smaller);
   color: var(--text-muted);
 }
-.tp-pdf-zoom { font-size: var(--font-ui-smaller); height: 22px; padding: 0 var(--size-4-4) 0 var(--size-4-2); }
-.tp-pdf-btn { width: 24px; height: 24px; }
+.tp-pdf-page { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tp-pdf-zoom { min-width: 0; font-size: var(--font-ui-smaller); height: 22px; padding: 0 var(--size-4-4) 0 var(--size-4-2); }
+.tp-pdf-btn { flex: 0 0 auto; width: 24px; height: 24px; }
 
 /* ------------------------------------------------------------------ log drawer */
-.tp-log { display: none; flex: 0 0 auto; flex-direction: column; height: 220px; min-height: 80px; border-top: 1px solid var(--background-modifier-border); background: var(--background-primary); }
+.tp-log { display: none; flex: 0 0 auto; flex-direction: column; height: 220px; max-height: 50%; min-height: 80px; border-top: 1px solid var(--background-modifier-border); background: var(--background-primary); }
 .tp-log.is-open { display: flex; }
-.tp-log-head { display: flex; align-items: center; gap: var(--size-4-2); padding: 2px var(--size-4-2); border-bottom: 1px solid var(--background-modifier-border); background: var(--background-secondary); font-size: var(--font-ui-small); }
+.tp-log-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--size-4-2); padding: 2px var(--size-4-2); border-bottom: 1px solid var(--background-modifier-border); background: var(--background-secondary); font-size: var(--font-ui-small); }
 .tp-log-tabs { display: flex; gap: 2px; }
 .tp-log-tab { padding: 2px var(--size-4-2); border-radius: var(--radius-s); color: var(--text-muted); cursor: pointer; }
 .tp-log-tab:hover { background: var(--background-modifier-hover); color: var(--text-normal); }
 .tp-log-tab.is-active { color: var(--text-normal); background: var(--background-modifier-hover); font-weight: var(--font-semibold); }
-.tp-log-filters { display: flex; gap: var(--size-4-2); }
+.tp-log-filters { display: flex; flex-wrap: wrap; gap: var(--size-4-2); }
 .tp-log-filter { display: inline-flex; align-items: center; gap: 3px; padding: 1px 6px; border-radius: var(--radius-s); cursor: pointer; color: var(--text-faint); }
 .tp-log-filter.is-active.is-error { color: var(--text-error); }
 .tp-log-filter.is-active.is-warning { color: var(--color-orange); }

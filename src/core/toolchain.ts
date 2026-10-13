@@ -23,7 +23,7 @@ export interface DetectOptions {
 
 export const defaultExec: ExecFn = (file, args, opts = {}) =>
   new Promise((resolve, reject) => {
-    execFile(file, args, { env: opts.env, timeout: opts.timeoutMs ?? 5000, cwd: opts.cwd, windowsHide: true, maxBuffer: 8 * 1024 * 1024 }, (err, stdout, stderr) => {
+    execFile(file, args, { env: opts.env, timeout: opts.timeoutMs ?? 5000, killSignal: "SIGKILL", cwd: opts.cwd, windowsHide: true, maxBuffer: 8 * 1024 * 1024 }, (err, stdout, stderr) => {
       if (err && (err as NodeJS.ErrnoException).code === "ENOENT") return reject(err);
       const code = err ? (typeof (err as { code?: unknown }).code === "number" ? ((err as { code: number }).code) : 1) : 0;
       resolve({ stdout: String(stdout), stderr: String(stderr), code });
