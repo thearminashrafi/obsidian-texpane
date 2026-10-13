@@ -3,3 +3,5 @@ main.js
 *.map
 .texpane
 data.json
+release/
+scripts/plugin/

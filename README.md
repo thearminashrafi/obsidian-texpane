@@ -9,7 +9,17 @@ An Overleaf-style LaTeX workspace inside Obsidian (desktop only, macOS first): a
 
 ## Install
 
-Manual: copy `release/main.js`, `release/manifest.json` and `release/styles.css` into `<vault>/.obsidian/plugins/texpane/`, then enable "TeXPane" under Settings, Community plugins.
+**One vault:** download `main.js`, `manifest.json` and `styles.css` from the [latest release](../../releases/latest), put them in `<vault>/.obsidian/plugins/texpane/`, then enable "TeXPane" under Settings → Community plugins (turn off Restricted mode first if needed).
+
+**Several vaults, one shared copy (macOS/Linux):** Obsidian installs plugins per vault. `scripts/add-texpane.sh` keeps a single copy in `~/Documents/.obsidian-shared-plugins/texpane` and links it into each vault, so one update reaches all of them:
+
+```bash
+npm install && npm run build                       # or put the release files in scripts/plugin/
+bash scripts/add-texpane.sh "/path/to/Vault A" "/path/to/Vault B"
+bash scripts/add-texpane.sh --update               # after a new build: refresh the shared copy
+```
+
+Open each vault in Obsidian once first (so it has a `.obsidian` folder), then reload plugins and switch TeXPane on. The script never deletes anything.
 
 From source: `npm install && npm run build` (outputs to `release/`). `npm run dev` watches and bundles to `main.js`. `npm test` runs the test suite (integration tests need `latexmk` and skip or fail without it). `npm run lint:colors` checks that styles use only Obsidian CSS variables outside the marked syntax block.
 
@@ -18,9 +28,11 @@ From source: `npm install && npm run build` (outputs to `release/`). `npm run de
 - Open any `.tex` file: it opens in the TeXPane view (editor | PDF, log drawer below). `.bib`, `.sty`, `.cls` open there too (setting, default on).
 - "New LaTeX project" / "New LaTeX file" from the command palette or file menu.
 - Multi-file projects: use `% !TEX root = ../main.tex` in sub-files. Otherwise the root is found by locating a `\documentclass` file that includes the current one.
-- Auto-compile on save or after a pause (configurable); manual with Cmd/Ctrl+Enter.
+- Auto-compile after a short pause in typing (configurable). Cmd/Ctrl+S saves and compiles; Cmd/Ctrl+Enter recompiles.
+- Right-click the Recompile button for an auto-compile on/off toggle (a small orange dot on the button means auto-compile is off).
+- Completion for commands, environments, `\ref` labels, `\cite` keys and vault notes. Picking `\begin` or `\end` opens the environment list; picking an environment inserts the whole block.
 - Errors and warnings appear as editor squiggles and in the log drawer; click to jump. F8 / Shift+F8 step through problems.
-- Click in the PDF to jump to source (inverse search); Cmd/Ctrl+Alt+J jumps from source to PDF (forward search).
+- Double-click in the PDF to jump to source (inverse search); Cmd/Ctrl+Alt+J jumps from source to PDF (forward search).
 
 ### `\obsidian` syntax
 
@@ -28,10 +40,11 @@ From source: `npm install && npm run build` (outputs to `release/`). `npm run de
 \obsidian{Note name}               % whole note
 \obsidian{Note name#Heading}       % one heading section
 \obsidian{Note name#^blockid}      % one block
-\obsidian[heading=2]{Note name}    % options in brackets
+\obsidian[level=subsection]{Note}  % note's top heading becomes \subsection (default: section)
+\obsidian[title=true]{Note name}    % add the note's name as a heading first
 ```
 
-Notes are converted to LaTeX at build time (headings, emphasis, lists, links, footnotes, math, GFM tables, images, code, nested `![[embeds]]`). Embed cycles and depth over 5 produce warnings, not hangs. Diagnostics from embedded content point at the `\obsidian` line and the note line. The `[[` completion inside `\obsidian{}` lists vault notes. Export: "Export flattened project" writes a plain `.tex` with embeds inlined that compiles with ordinary latexmk.
+Notes are converted to LaTeX at build time (headings, emphasis, lists, links, footnotes, math, GFM tables, images, code, nested `![[embeds]]`). Embed cycles and depth over 5 produce warnings, not hangs. Diagnostics from embedded content point at the `\obsidian` line and the note line. Typing `[[` (or `\obsidian{`) lists vault notes; picking one writes `\obsidian{Note}`. `#` after a note name lists its headings. Export: "Export flattened project" writes a plain `.tex` with embeds inlined that compiles with ordinary latexmk.
 
 ## Shortcuts (all rebindable under Hotkeys)
 
@@ -67,3 +80,7 @@ Obsidian launched from the Dock does not inherit your shell PATH, so `latexmk` m
 - Embedded Markdown: callouts, Dataview and other plugin syntax are not converted (passed through as text or dropped with a warning).
 - Shell escape is off by default; enable it only for documents you trust.
 - The Obsidian-facing UI could not be exercised in an automated environment; see `docs/MANUAL_TEST.md`.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
