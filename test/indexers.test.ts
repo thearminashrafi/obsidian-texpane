@@ -87,6 +87,15 @@ describe("ProjectIndex", () => {
     expect(idx.files().sort()).toEqual([path.join(R, "ch", "one.tex"), path.join(R, "main.tex"), path.join(R, "two.tex")].sort());
     expect(idx.outline(path.join(R, "ch", "one.tex"))[0].title).toBe("One");
   });
+  it("projectOutline merges input files inline in document order", async () => {
+    const fs = memFs({
+      "/proj/main.tex": "\\section{A}\n\\input{x}\n\\section{C}",
+      "/proj/x.tex": "\\section{B}\n\\subsection{B1}",
+    });
+    const idx = new ProjectIndex(fs);
+    await idx.build(path.join(R, "main.tex"));
+    expect(idx.projectOutline().map((o) => o.item.title)).toEqual(["A", "B", "B1", "C"]);
+  });
   it("falls back to every .bib in the root folder when none declared", async () => {
     const fs = memFs({ "/proj/main.tex": "\\documentclass{article}", "/proj/a.bib": "@book{x, title={X}}", "/proj/b.bib": "@book{y, title={Y}}" });
     const idx = new ProjectIndex(fs);

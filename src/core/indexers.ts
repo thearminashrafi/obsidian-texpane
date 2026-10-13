@@ -98,6 +98,8 @@ export interface IndexFs {
 interface TexData {
   labels: LabelEntry[];
   inputs: string[];
+  /** inputs with their line numbers, in document order */
+  inputLines: Array<{ name: string; line: number }>;
   bibs: string[];
   sections: OutlineItem[];
 }
@@ -120,7 +122,9 @@ export class ProjectIndex {
   private async readTex(abs: string): Promise<TexData | null> {
     const text = await this.fs.readFile(abs);
     if (text === null) return null;
-    return { labels: extractLabels(text, abs), inputs: extractInputs(text), bibs: extractBibResources(text), sections: extractSections(text) };
+    const inputLines: Array<{ name: string; line: number }> = [];
+    text.split(/\r?\n/).forEach((l, i) => extractInputs(l).forEach((name) => inputLines.push({ name, line: i + 1 })));
+    return { labels: extractLabels(text, abs), inputs: extractInputs(text), inputLines, bibs: extractBibResources(text), sections: extractSections(text) };
   }
 
   private async readBib(abs: string) {
@@ -193,6 +197,26 @@ export class ProjectIndex {
   }
   outline(file: string): OutlineItem[] {
     return this.tex.get(path.resolve(file))?.sections ?? [];
+  }
+  /** Sections of the whole project in document order, following \input/\include inline. */
+  projectOutline(): Array<{ file: string; item: OutlineItem }> {
+    const out: Array<{ file: string; item: OutlineItem }> = [];
+    const visited = new Set<string>();
+    const walk = (f: string, depth: number) => {
+      const d = this.tex.get(f);
+      if (!d || visited.has(f) || depth > 12) return;
+      visited.add(f);
+      const events: Array<{ line: number; sec?: OutlineItem; input?: string }> = [
+        ...d.sections.map((sec) => ({ line: sec.line, sec })),
+        ...d.inputLines.map((i) => ({ line: i.line + 0.5, input: i.name })),
+      ].sort((a, b) => a.line - b.line);
+      for (const e of events) {
+        if (e.sec) out.push({ file: f, item: e.sec });
+        else if (e.input) for (const c of this.resolveInput(e.input, f, ".tex")) if (this.tex.has(c)) { walk(c, depth + 1); break; }
+      }
+    };
+    walk(this.root, 0);
+    return out;
   }
   has(file: string): boolean {
     const a = path.resolve(file);
