@@ -86,7 +86,19 @@ export default class TexPanePlugin extends Plugin {
     await this.saveData(this.settings);
   }
   refreshViews() {
-    for (const v of this.latexViews()) v.applyStyleSettings();
+    for (const v of this.latexViews()) {
+      v.applyStyleSettings();
+      v.refreshAutoCompileState();
+    }
+  }
+
+  /** Single place that changes auto-compile: setting, buttons, and a notice. Turning it on catches up with a compile. */
+  async setAutoCompile(on: boolean) {
+    this.settings.autoCompile = on;
+    await this.saveSettings();
+    for (const v of this.latexViews()) v.refreshAutoCompileState();
+    new Notice(`TeXPane: auto-compile ${on ? "on" : "off"}`);
+    if (on) for (const s of this.sessions.values()) s.schedule();
   }
 
   detectToolchain(): Promise<ToolchainInfo> {
@@ -228,6 +240,14 @@ export default class TexPanePlugin extends Plugin {
       return true;
     };
     this.addCommand({ id: "recompile", name: "Recompile", icon: "refresh-cw", checkCallback: withView((v) => void v.recompile()) });
+    // Third route for Mod+S (besides the editor keymap and the view scope); a 250 ms guard keeps one press to one compile.
+    this.addCommand({
+      id: "save-and-recompile",
+      name: "Save and recompile",
+      icon: "save",
+      hotkeys: [{ modifiers: ["Mod"], key: "s" }],
+      checkCallback: withView((v) => void v.saveAndCompile()),
+    });
     this.addCommand({
       id: "sync-to-pdf",
       name: "Jump to PDF position (forward search)",
@@ -256,11 +276,7 @@ export default class TexPanePlugin extends Plugin {
       id: "toggle-auto-compile",
       name: "Toggle auto-compile",
       icon: "zap",
-      callback: async () => {
-        this.settings.autoCompile = !this.settings.autoCompile;
-        await this.saveSettings();
-        new Notice(`TeXPane: auto-compile ${this.settings.autoCompile ? "on" : "off"}`);
-      },
+      callback: () => void this.setAutoCompile(!this.settings.autoCompile),
     });
     this.addCommand({ id: "new-project", name: "New LaTeX project", icon: "folder-plus", callback: () => this.newLatexProject(this.defaultFolder()) });
     this.addCommand({ id: "new-file", name: "New LaTeX file", icon: "file-plus", callback: () => void this.newLatexFile(this.defaultFolder()) });

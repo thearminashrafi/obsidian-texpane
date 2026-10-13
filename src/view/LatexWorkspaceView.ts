@@ -56,7 +56,6 @@ export class LatexWorkspaceView extends TextFileView {
   private pendingReveal: { line: number; col?: number } | null = null;
   private pdfLoadedFor = "";
   private bindToken = 0;
-  private manualSave = false;
   private lastManualSave = 0;
   private currentRoot = "";
   /** Content last read from or written to disk; the editor has unsaved edits when it differs. */
@@ -206,19 +205,19 @@ export class LatexWorkspaceView extends TextFileView {
     const data = this.getViewData();
     await super.save(clear);
     if (file && file === this.file) this.diskData = data;
-    if (this.manualSave) {
-      this.manualSave = false;
-      void this.recompile();
-    }
   }
 
-  /** Save now and recompile; both the view scope and the editor keymap call this, so one key press runs it once. */
-  private saveAndCompile(): boolean {
+  /**
+   * Save now and recompile. The view scope and the editor keymap both call this, so one key press runs it once.
+   * The compile is started directly (not from inside save()), so it cannot be lost if Obsidian's save path changes.
+   */
+  saveAndCompile(): boolean {
     const now = Date.now();
     if (now - this.lastManualSave < 250) return true;
     this.lastManualSave = now;
-    this.manualSave = true;
-    void this.save();
+    void this.save()
+      .catch(() => undefined)
+      .then(() => this.recompile());
     return true;
   }
 
@@ -364,10 +363,33 @@ export class LatexWorkspaceView extends TextFileView {
   private setupHeader() {
     this.recompileBtn = this.addAction("refresh-cw", "Recompile", () => void this.recompile());
     this.recompileBtn.addClass("tp-action-recompile");
+    // Right-click: auto-compile toggle and friends, right where you would look for it.
+    this.registerDomEvent(this.recompileBtn, "contextmenu", (e: MouseEvent) => {
+      e.preventDefault();
+      this.recompileMenu(e);
+    });
+    this.refreshAutoCompileState();
     this.layoutBtn = this.addAction("columns-2", "Layout", (e) => this.layoutMenu(e));
     this.syncBtn = this.addAction("locate", "Sync to PDF", () => void this.syncToPdf());
     this.logBtn = this.addAction("triangle-alert", "Log", () => this.toggleLog());
     this.logBtn.addClass("tp-action-log");
+  }
+
+  private recompileMenu(e: MouseEvent) {
+    const m = new Menu();
+    const auto = this.plugin.settings.autoCompile;
+    m.addItem((i) => i.setTitle("Auto-compile while typing").setIcon("zap").setChecked(auto).onClick(() => void this.plugin.setAutoCompile(!auto)));
+    m.addSeparator();
+    m.addItem((i) => i.setTitle("Recompile now").setIcon("refresh-cw").onClick(() => void this.recompile()));
+    m.addItem((i) => i.setTitle("Clean build files and recompile").setIcon("trash-2").onClick(() => void this.plugin.cleanBuild(this)));
+    m.showAtMouseEvent(e);
+  }
+
+  /** Reflect the auto-compile setting on the button: tooltip text and an "off" marker. */
+  refreshAutoCompileState() {
+    const auto = this.plugin.settings.autoCompile;
+    this.recompileBtn?.toggleClass("is-auto-off", !auto);
+    this.recompileBtn?.setAttribute("aria-label", auto ? "Recompile (right-click: auto-compile options)" : "Recompile (auto-compile is off; right-click for options)");
   }
 
   private layoutMenu(e: MouseEvent) {

@@ -11,7 +11,7 @@ Prerequisites: MacTeX or BasicTeX with latexmk, Obsidian 1.8+, a scratch vault. 
 ## M1 Compile and PDF
 1. Open `single/main.tex`. PDF appears within a few seconds beside the editor.
 2. Edit text, wait for auto-compile: PDF updates without flicker; scroll position and zoom preserved.
-3. Press Cmd+Enter: recompiles. Press Cmd+S: exactly one compile.
+3. Press Cmd+Enter: recompiles. Press Cmd+S: saves and runs exactly one compile (spinner on the Recompile button). Right-click the Recompile button: the menu has an "Auto-compile while typing" toggle; when it is off the button shows a small orange dot and typing no longer compiles.
 4. Drag the divider; reopen file: ratio remembered. Cycle layout (Cmd+Opt+V): split, editor only, PDF only.
 5. Status bar shows build state. Disable auto-compile via command: edits no longer compile.
 

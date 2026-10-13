@@ -97,13 +97,8 @@ export class TexPaneSettingTab extends PluginSettingTab {
       );
     new Setting(containerEl)
       .setName("Auto-compile while typing")
-      .setDesc("Off: compile only on Mod+S or Mod+Enter.")
-      .addToggle((t) =>
-        t.setValue(s.autoCompile).onChange(async (v) => {
-          s.autoCompile = v;
-          await save();
-        }),
-      );
+      .setDesc("Off: compile only on Mod+S or Mod+Enter. Also in the Recompile button's right-click menu.")
+      .addToggle((t) => t.setValue(s.autoCompile).onChange((v) => void this.plugin.setAutoCompile(v)));
     new Setting(containerEl)
       .setName("Compile delay")
       .setDesc("Milliseconds of quiet before an automatic build (300 to 5000).")
