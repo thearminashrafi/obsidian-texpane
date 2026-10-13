@@ -271,6 +271,9 @@ export class TexPaneSettingTab extends PluginSettingTab {
     const t = this.plugin.toolchain;
     if (!t) {
       el.createEl("p", { text: "Detecting TeX tools…", cls: "setting-item-description" });
+      void this.plugin.ensureToolchain().then(() => {
+        if (el.isConnected) this.renderToolchain(el);
+      }, () => undefined);
       return;
     }
     const rows: Array<[string, string | null, boolean]> = [

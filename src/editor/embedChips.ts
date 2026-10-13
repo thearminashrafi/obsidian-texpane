@@ -1,4 +1,4 @@
-import { RangeSetBuilder, StateEffect, type Extension } from "@codemirror/state";
+import { RangeSetBuilder, StateEffect, type EditorState, type Extension } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet, type ViewUpdate } from "@codemirror/view";
 import { setIcon } from "obsidian";
 import { parseEmbedTarget } from "../core/embedScanner";
@@ -63,6 +63,44 @@ class ChipWidget extends WidgetType {
   }
 }
 
+export interface ChipRange {
+  from: number;
+  to: number;
+  target: string;
+  opts: string;
+  exists: boolean;
+}
+
+/** \obsidian{...} macros to show as chips, sorted by position. Each line is scanned once even when
+ * several visible ranges fall on it (CodeMirror splits very long lines with line gaps). */
+export function scanChips(state: EditorState, ranges: readonly { from: number; to: number }[], exists: (note: string) => boolean): ChipRange[] {
+  const out: ChipRange[] = [];
+  const sel = state.selection.ranges;
+  let next = 0;
+  for (const { from, to } of ranges) {
+    let pos = Math.max(from, next);
+    while (pos <= to) {
+      const line = state.doc.lineAt(pos);
+      if (line.text.includes("\\obsidian")) {
+        MACRO.lastIndex = 0;
+        const codeLen = stripComment(line.text).length;
+        let m: RegExpExecArray | null;
+        while ((m = MACRO.exec(line.text))) {
+          if (m.index >= codeLen) continue; // inside a comment
+          const a = line.from + m.index;
+          const z = a + m[0].length;
+          if (sel.some((r) => r.from <= z && r.to >= a)) continue;
+          const target = m[2].trim();
+          const note = parseEmbedTarget(target).note;
+          out.push({ from: a, to: z, target, opts: m[1] ?? "", exists: note !== "" && exists(note) });
+        }
+      }
+      pos = next = line.to + 1;
+    }
+  }
+  return out;
+}
+
 export function embedChips(host: ChipHost): Extension {
   const plugin = ViewPlugin.fromClass(
     class {
@@ -75,27 +113,8 @@ export function embedChips(host: ChipHost): Extension {
       }
       build(view: EditorView): DecorationSet {
         const b = new RangeSetBuilder<Decoration>();
-        const sel = view.state.selection.ranges;
-        for (const { from, to } of view.visibleRanges) {
-          let pos = from;
-          while (pos <= to) {
-            const line = view.state.doc.lineAt(pos);
-            if (line.text.includes("\\obsidian")) {
-              MACRO.lastIndex = 0;
-              const codeLen = stripComment(line.text).length;
-              let m: RegExpExecArray | null;
-              while ((m = MACRO.exec(line.text))) {
-                if (m.index >= codeLen) continue; // inside a comment
-                const a = line.from + m.index;
-                const z = a + m[0].length;
-                if (sel.some((r) => r.from <= z && r.to >= a)) continue;
-                const target = m[2].trim();
-                const note = parseEmbedTarget(target).note;
-                b.add(a, z, Decoration.replace({ widget: new ChipWidget(target, m[1] ?? "", note !== "" && host.exists(note), host, a) }));
-              }
-            }
-            pos = line.to + 1;
-          }
+        for (const c of scanChips(view.state, view.visibleRanges, (n) => host.exists(n))) {
+          b.add(c.from, c.to, Decoration.replace({ widget: new ChipWidget(c.target, c.opts, c.exists, host, c.from) }));
         }
         return b.finish();
       }

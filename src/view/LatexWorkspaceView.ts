@@ -58,6 +58,8 @@ export class LatexWorkspaceView extends TextFileView {
   private bindToken = 0;
   private manualSave = false;
   private currentRoot = "";
+  /** Content last read from or written to disk; the editor has unsaved edits when it differs. */
+  private diskData: string | null = null;
 
   constructor(leaf: WorkspaceLeaf, plugin: TexPanePlugin) {
     super(leaf);
@@ -133,6 +135,7 @@ export class LatexWorkspaceView extends TextFileView {
 
   setViewData(data: string, clear: boolean): void {
     this.data = data;
+    this.diskData = data;
     if (!this.editor) return;
     if (clear) {
       this.editor.setState(this.makeState(data));
@@ -152,6 +155,16 @@ export class LatexWorkspaceView extends TextFileView {
   clear(): void {
     if (this.editor) this.editor.setState(this.makeState(""));
     this.data = "";
+    this.diskData = null;
+  }
+
+  /** The file changed on disk (another editor, sync, git). Take the new text unless there are unsaved edits,
+   * so the next save (every compile saves open views) cannot write the stale buffer back over it. */
+  reloadIfClean(file: TFile, disk: string) {
+    if (file !== this.file || !this.editor) return;
+    const cur = this.getViewData();
+    if (disk === cur || cur !== this.diskData) return;
+    this.setViewData(disk, false);
   }
 
   async onLoadFile(file: TFile) {
@@ -184,7 +197,10 @@ export class LatexWorkspaceView extends TextFileView {
   }
 
   async save(clear?: boolean): Promise<void> {
+    const file = this.file;
+    const data = this.getViewData();
     await super.save(clear);
+    if (file && file === this.file) this.diskData = data;
     if (this.manualSave) {
       this.manualSave = false;
       void this.recompile();

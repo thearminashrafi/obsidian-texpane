@@ -148,10 +148,12 @@ export default class TexPanePlugin extends Plugin {
         if (!(f instanceof TFile)) return;
         if (f.path.includes("/.texpane/")) return;
         // ignore our own saves (open view already has exactly this content)
-        const own = this.latexViews().find((v) => v.file === f);
-        if (own && own.getViewData() === own.data) {
-          void this.app.vault.cachedRead(f).then((disk) => {
-            if (disk !== own.getViewData()) kick(f);
+        const own = this.latexViews().filter((v) => v.file === f);
+        if (own.length) {
+          void this.app.vault.read(f).then((disk) => {
+            const changed = own.some((v) => disk !== v.getViewData());
+            for (const v of own) v.reloadIfClean(f, disk);
+            if (changed) kick(f);
           });
           return;
         }

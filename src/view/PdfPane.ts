@@ -173,7 +173,10 @@ export class PdfPane {
       if (p.offsetTop + p.offsetHeight >= target && p.offsetTop <= target + vh) visible.push(i);
     });
     await Promise.all(visible.slice(0, 6).map((i) => this.renderPage(next, i, scale)));
-    if (this.disposed || next.dead) return;
+    if (this.disposed || next.dead) {
+      if (!next.dead) this.retire(next); // closed while rendering: free the pdf.js document
+      return;
+    }
     // swap
     if (old) this.retire(old);
     next.el.removeClass("is-next");
