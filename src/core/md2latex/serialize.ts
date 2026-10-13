@@ -402,7 +402,11 @@ class Serializer {
     const plain = kids.length === 1 && kids[0].type === "text" ? String(kids[0].value) : null;
     if (/^(https?:|ftp:|mailto:)/i.test(url)) {
       this.usesLinks = true;
-      if (plain !== null && (plain === url || "mailto:" + plain === url)) return `\\url{${escapeUrl(url)}}`;
+      if (plain !== null && (plain === url || "mailto:" + plain === url)) {
+        // \% \# \& print literally with url.sty (only hyperref unescapes them), so such URLs go through \href
+        if (!/[%#&]/.test(url)) return `\\url{${url}}`;
+        return `\\href{${escapeUrl(url)}}{\\texttt{${escapeTex(plain)}}}`;
+      }
       return `\\href{${escapeUrl(url)}}{${this.inl(kids, depth + 1)}}`;
     }
     return this.inl(kids, depth + 1);

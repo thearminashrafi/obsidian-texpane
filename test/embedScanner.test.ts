@@ -36,6 +36,10 @@ describe("scanEmbeds", () => {
     expect(r[0].heading).toBe("A (b), c: d");
     expect(r[1].blockId).toBe("id");
   });
+  it("skips an escaped \\\\obsidian, verbatim environments and \\verb", () => {
+    const t = "a\\\\obsidian{no1} \\\\\\obsidian{yes1}\n\\begin{verbatim}\n\\obsidian{no2}\n\\end{verbatim}\n\\begin{lstlisting}x \\obsidian{no3}\\end{lstlisting} \\verb|\\obsidian{no4}| \\verb*+\\obsidian{no5}+ \\obsidian{yes2}\n% \\begin{verbatim}\n\\obsidian{yes3}";
+    expect(scanEmbeds(t).map((x) => x.target)).toEqual(["yes1", "yes2", "yes3"]);
+  });
   it("returns [] for no embeds", () => { expect(scanEmbeds("\\documentclass{article}")).toEqual([]); });
 });
 
@@ -59,5 +63,15 @@ describe("substituteEmbeds", () => {
   it("replacement containing newlines is the caller's problem but does not corrupt offsets of later refs", () => {
     const out = substituteEmbeds("\\obsidian{A}\\obsidian{B}", (r) => (r.note === "A" ? "<<A>>" : "<<B>>"));
     expect(out).toBe("<<A>><<B>>");
+  });
+});
+
+describe("documentClassEnd", () => {
+  it("handles options over several lines with comments, and comments before the class name", async () => {
+    const { documentClassEnd } = await import("../src/core/buildPipeline");
+    const t = "% \\documentclass{x}\n\\documentclass[a,\n% b]\n c]% note\n{article}\nX";
+    expect(t.slice(0, documentClassEnd(t))).toBe("% \\documentclass{x}\n\\documentclass[a,\n% b]\n c]% note\n{article}");
+    expect(documentClassEnd("\\documentclass{article}%c\n")).toBe(23);
+    expect(documentClassEnd("\\begin{document}")).toBe(-1);
   });
 });

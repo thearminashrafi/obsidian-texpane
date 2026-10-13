@@ -1,0 +1,17 @@
+\documentclass[
+  11pt,
+  a4paper]
+  {article}
+\usepackage{mystyle}
+\begin{document}
+\mystylemark\ \includegraphics[width=1cm]{local-fig} \cite{knuth84}
+\obsidian{Café (draft)} and \obsidian[level=subsection,title=true]{Sub/Specials#Part B}
+% \obsidian{Commented out}
+Line\\obsidian{Not an embed} stays.
+\begin{verbatim}
+\obsidian{In verbatim}
+\end{verbatim}
+\verb|\obsidian{In verb}| \obsidian{specials#^blk}
+\bibliographystyle{plain}
+\bibliography{refs}
+\end{document}

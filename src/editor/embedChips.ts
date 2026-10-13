@@ -87,6 +87,7 @@ export function scanChips(state: EditorState, ranges: readonly { from: number; t
         let m: RegExpExecArray | null;
         while ((m = MACRO.exec(line.text))) {
           if (m.index >= codeLen) continue; // inside a comment
+          if ((/\\*$/.exec(line.text.slice(0, m.index))?.[0].length ?? 0) % 2) continue; // \\obsidian: escaped backslash
           const a = line.from + m.index;
           const z = a + m[0].length;
           if (sel.some((r) => r.from <= z && r.to >= a)) continue;

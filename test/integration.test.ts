@@ -185,6 +185,18 @@ describe("integration: \\obsidian embeds", () => {
     expect(e[0].note).toEqual({ path: "Broken.md", line: 5 });
   });
 
+  it("TeX errors in shadowed files map to the original file and line", async () => {
+    const { d, notes } = await setup();
+    const ch = path.join(d, "chapters", "ch.tex");
+    const lines = (await fsp.readFile(ch, "utf8")).split("\n");
+    lines.splice(lines.length - 1, 0, "\\kaputt");
+    await fsp.writeFile(ch, lines.join("\n"));
+    const { r } = await build(path.join(d, "main.tex"), d, {}, notes);
+    const e = errs(r);
+    expect(e[0]).toMatchObject({ file: ch, line: lines.length - 1 });
+    expect(e[0].note).toBeUndefined();
+  });
+
   it("editing a note updates the PDF (incremental) and unchanged notes are skipped", async () => {
     const { d, vault, notes } = await setup();
     const file = path.join(d, "main.tex");
@@ -200,6 +212,24 @@ describe("integration: \\obsidian embeds", () => {
     await fsp.writeFile(note, (await fsp.readFile(note, "utf8")).replace("Background text.", "Edited background sentence."));
     const c = await build(file, d, {}, new FolderNoteProvider(vault));
     expect(text(c.r.pdfPath!)).toContain("Edited background sentence.");
+  });
+
+  it("incremental cache is invalidated by a nested note edit and by an option change", async () => {
+    const { d, vault, notes } = await setup();
+    const file = path.join(d, "main.tex");
+    await build(file, d, {}, notes);
+    await new Promise((res) => setTimeout(res, 30));
+    const m = path.join(vault, "Methods.md");
+    await fsp.writeFile(m, (await fsp.readFile(m, "utf8")).replace("We use a simple pipeline", "We use a nested edited pipeline"));
+    const b = await build(file, d, {}, new FolderNoteProvider(vault));
+    expect(text(b.r.pdfPath!)).toContain("We use a nested edited pipeline");
+    const before = b.r.mapping.embeds.map((e) => e.embedAbsPath);
+    await fsp.writeFile(file, (await fsp.readFile(file, "utf8")).replace("\\obsidian{Lit review}", "\\obsidian[level=subsection]{Lit review}"));
+    const c = await build(file, d, {}, new FolderNoteProvider(vault));
+    expect(c.r.status).toBe("ok");
+    const lit = c.r.mapping.embeds.find((e) => e.notePath === "Lit review.md")!;
+    expect(before).not.toContain(lit.embedAbsPath);
+    expect(await fsp.readFile(lit.embedAbsPath, "utf8")).toMatch(/^\\subsection\{Literature review\}/m);
   });
 
   it("double-click inverse search on embedded text resolves to the note and line; forward search works", async () => {
@@ -222,6 +252,42 @@ describe("integration: \\obsidian embeds", () => {
     expect(inv!.note?.line).toBe(5); // "Background text." is line 5 of Folder/Intro.md
   });
 
+  it("shadow build resolves a local .sty, an image and a .bib next to \\obsidian; specials, comments, verbatim, escaped", async () => {
+    const d = await copyProject("embedmix");
+    const vault = path.join(tmp, "vault2-" + Math.random().toString(36).slice(2, 7));
+    await fsp.cp(path.join(fixtures, "vault2"), vault, { recursive: true });
+    const { r } = await build(path.join(d, "main.tex"), d, {}, new FolderNoteProvider(vault));
+    expect(errs(r)).toEqual([]);
+    expect(r.status).toBe("ok");
+    const t = text(r.pdfPath!);
+    expect(t).toContain("MYSTYLEOK");
+    expect(t).toContain("Knuth");
+    expect(t).toContain("Accented café text — with “quotes” here.");
+    // pdftotext drops the OT1 underscore rule and shows ~ ^ as accents
+    expect(t).toMatch(/Specials & % \$ # .? \{ \} \S \S \\ end\./);
+    expect(t).toMatch(/A&B\s+C.?%/);
+    expect(t).toContain("x#y");
+    expect(t).toMatch(/link & text .?%/);
+    expect(t).toContain("https://ex.com/p%41#q");
+    expect(t).toMatch(/Sub heading with & and .?and %/);
+    expect(t).toContain("Line\nobsidian{Not an embed} stays.".replace("{", "").replace("}", ""));
+    expect(t).not.toMatch(/unresolved embed/);
+    expect(t).toContain("A paragraph with a block.");
+    expect(t).not.toContain("Not included.");
+    expect(r.diagnostics.filter((x) => x.severity === "warning" && x.source === "embed")).toEqual([]);
+    const shadow = await fsp.readFile(path.join(r.mapping.shadowDir!, "main.tex"), "utf8");
+    const orig = await fsp.readFile(path.join(d, "main.tex"), "utf8");
+    const sl = shadow.split("\n");
+    expect(sl.length).toBe(orig.split("\n").length);
+    expect(sl[7]).toMatch(/^\\input\{[^}]+\} and \\input\{[^}]+\}$/);
+    expect(sl[8]).toBe("% \\obsidian{Commented out}");
+    expect(sl[9]).toBe("Line\\\\obsidian{Not an embed} stays.");
+    expect(sl[11]).toBe("\\obsidian{In verbatim}");
+    expect(sl[13]).toMatch(/^\\verb\|\\obsidian\{In verb\}\| \\input\{/);
+    // support macros stayed on the (multi-line) \documentclass statement
+    expect(sl[3]).toMatch(/^  \{article\}\\usepackage\{graphicx\}/);
+  });
+
   it("Export flattened project compiles with plain latexmk", async () => {
     const { d, vault, notes } = await setup();
     const out = path.join(tmp, "export-" + Math.random().toString(36).slice(2, 7));
@@ -233,5 +299,17 @@ describe("integration: \\obsidian embeds", () => {
     const t = text(path.join(out, "main.pdf"));
     expect(t).toContain("Prior work by");
     expect(t).toContain("Background text.");
+    expect(t).toContain("We use a simple pipeline"); // nested ![[Methods]] inside Lit review
+    expect(flat).toMatch(/\\includegraphics\[[^\]]*\]\{assets\/img-[0-9a-f]{8}\.png\}/);
+    expect((await fsp.readdir(path.join(out, "assets"))).some((a) => a.endsWith(".png"))).toBe(true);
+  });
+
+  it("Export into a folder inside the project does not copy the export into itself", async () => {
+    const { d, vault, notes } = await setup();
+    const out = path.join(d, "TeXPane export", "main");
+    await exportFlattened({ rootAbs: path.join(d, "main.tex"), cwd: d, outDir: out, notes, vaultBase: vault });
+    await exportFlattened({ rootAbs: path.join(d, "main.tex"), cwd: d, outDir: out, notes, vaultBase: vault });
+    expect(await fsp.readdir(out)).not.toContain("TeXPane export");
+    execFileSync(tc.latexmk!.path, ["-pdf", "-interaction=nonstopmode", "main.tex"], { cwd: out, env: buildEnv(tc, process.env), stdio: "pipe" });
   });
 });

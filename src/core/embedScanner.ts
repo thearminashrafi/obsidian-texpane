@@ -19,15 +19,36 @@ function parseOptions(s: string): Record<string, string> {
   return o;
 }
 
-/** Offsets that are inside a TeX comment (from an unescaped % to end of line). */
+const VERBATIM_ENVS = /^\\begin\{(verbatim\*?|Verbatim\*?|BVerbatim|LVerbatim|lstlisting|minted|comment|filecontents\*?)\}/;
+
+/** Offsets where a macro must not be recognised: TeX comments, verbatim environments, \verb, and a backslash escaped by another one. */
 function commentMask(text: string): boolean[] {
   const mask = new Array<boolean>(text.length).fill(false);
   let inComment = false;
   for (let i = 0; i < text.length; i++) {
     const c = text[i];
     if (c === "\n") inComment = false;
-    else if (!inComment && c === "\\") i++;
-    else if (!inComment && c === "%") inComment = true;
+    else if (!inComment && c === "\\") {
+      const env = VERBATIM_ENVS.exec(text.slice(i, i + 40));
+      const verb = /^\\verb\*?([^A-Za-z*\s])/.exec(text.slice(i, i + 8));
+      let end = -1;
+      if (env) {
+        const close = text.indexOf(`\\end{${env[1]}}`, i + env[0].length);
+        end = close < 0 ? text.length : close;
+      } else if (verb) {
+        const close = text.indexOf(verb[1], i + verb[0].length);
+        const eol = text.indexOf("\n", i);
+        end = close < 0 || (eol >= 0 && close > eol) ? (eol < 0 ? text.length : eol) : close + 1;
+      }
+      if (end > i) {
+        mask.fill(true, i + 1, end);
+        i = end - 1;
+        continue;
+      }
+      if (i + 1 < text.length) mask[i + 1] = true;
+      i++;
+      continue;
+    } else if (!inComment && c === "%") inComment = true;
     if (inComment) mask[i] = true;
   }
   return mask;

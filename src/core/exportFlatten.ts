@@ -5,7 +5,7 @@ import { collectProjectFiles, documentClassEnd, supportMacros } from "./buildPip
 import { EmbedBuilder } from "./embeds";
 import { scanEmbeds, substituteEmbeds } from "./embedScanner";
 import { detectPackages } from "./indexers";
-import { toVaultRel } from "./paths";
+import { isInside, toVaultRel } from "./paths";
 
 export interface ExportOptions {
   rootAbs: string;
@@ -26,12 +26,13 @@ export interface ExportResult {
 const SKIP_DIR = /^\.|^node_modules$/;
 const SKIP_FILE = /\.(aux|log|synctex\.gz|fdb_latexmk|fls|out|toc|lof|lot|bcf|run\.xml|blg|bbl|nav|snm|vrb)$/i;
 
-async function copyDir(src: string, dst: string): Promise<void> {
+async function copyDir(src: string, dst: string, skip: string): Promise<void> {
   await fsp.mkdir(dst, { recursive: true });
   for (const e of await fsp.readdir(src, { withFileTypes: true })) {
     if (e.isDirectory()) {
-      if (SKIP_DIR.test(e.name)) continue;
-      await copyDir(path.join(src, e.name), path.join(dst, e.name));
+      // never copy the export folder (or the folder holding it) into itself: it is inside the project when the root is at the vault root
+      if (SKIP_DIR.test(e.name) || isInside(path.resolve(src, e.name), skip)) continue;
+      await copyDir(path.join(src, e.name), path.join(dst, e.name), skip);
     } else if (e.isFile() && !SKIP_FILE.test(e.name)) {
       await fsp.copyFile(path.join(src, e.name), path.join(dst, e.name));
     }
@@ -41,7 +42,7 @@ async function copyDir(src: string, dst: string): Promise<void> {
 /** Write a standalone folder where every \obsidian is replaced by converted LaTeX and images are copied in. */
 export async function exportFlattened(o: ExportOptions): Promise<ExportResult> {
   await fsp.mkdir(o.outDir, { recursive: true });
-  await copyDir(o.cwd, o.outDir);
+  await copyDir(o.cwd, o.outDir, path.resolve(o.outDir));
   const files = await collectProjectFiles(o.rootAbs, o.cwd);
   const pkgs = new Set<string>();
   for (const t of files.values()) detectPackages(t).forEach((p) => pkgs.add(p));

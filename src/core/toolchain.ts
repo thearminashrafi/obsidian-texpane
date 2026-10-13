@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as path from "node:path";
 import type { Engine, ToolInfo, ToolchainInfo } from "../types";
@@ -159,14 +160,53 @@ export async function detectToolchain(opts: DetectOptions = {}): Promise<Toolcha
   return { found: !!latexmk, binDir, latexmk, synctex, texcount, biber, bibtex, engines, missing, platform };
 }
 
-export function buildEnv(info: Pick<ToolchainInfo, "binDir">, base: NodeJS.ProcessEnv, platform: NodeJS.Platform = process.platform): NodeJS.ProcessEnv {
+export interface SyncDirFs {
+  isDir(p: string): boolean;
+  readdir(p: string): string[];
+}
+const nodeSyncFs: SyncDirFs = {
+  isDir: (p) => {
+    try {
+      return fs.statSync(p).isDirectory();
+    } catch {
+      return false;
+    }
+  },
+  readdir: (p) => {
+    try {
+      return fs.readdirSync(p);
+    } catch {
+      return [];
+    }
+  },
+};
+
+/** Known TeX/Homebrew bin folders that exist (newest TeX Live year only), so a mixed MacTeX/Homebrew install still finds every tool. */
+export function knownTexDirs(platform: NodeJS.Platform, sfs: SyncDirFs = nodeSyncFs): string[] {
+  const p = pathApi(platform);
+  const out: string[] = [];
+  const root = platform === "win32" ? "C:\\texlive" : "/usr/local/texlive";
+  const year = sfs.readdir(root).filter((y) => /^\d{4}$/.test(y)).sort((a, b) => Number(b) - Number(a))[0];
+  if (year) for (const a of sfs.readdir(p.join(root, year, "bin"))) out.push(p.join(root, year, "bin", a));
+  if (platform === "darwin") out.unshift("/Library/TeX/texbin", "/opt/homebrew/bin", "/usr/local/bin");
+  return out.filter((d) => sfs.isDir(d));
+}
+
+export function buildEnv(info: Pick<ToolchainInfo, "binDir">, base: NodeJS.ProcessEnv, platform: NodeJS.Platform = process.platform, sfs?: SyncDirFs): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...base };
   const key = getPathKey(env, platform);
   const sep = platform === "win32" ? ";" : ":";
-  if (info.binDir) {
-    const cur = env[key] ?? (platform === "win32" ? "" : "/usr/bin:/bin:/usr/sbin:/sbin");
-    env[key] = cur ? `${info.binDir}${sep}${cur}` : info.binDir;
-  }
+  const cur = env[key] ?? (platform === "win32" ? "" : "/usr/bin:/bin:/usr/sbin:/sbin");
+  const norm = (d: string) => (platform === "win32" ? d.toLowerCase().replace(/[\\/]+$/, "") : d.replace(/\/+$/, ""));
+  const seen = new Set<string>();
+  const dirs = [...(info.binDir ? [info.binDir] : []), ...knownTexDirs(platform, sfs), ...cur.split(sep)].filter((d) => {
+    if (!d) return false;
+    const k = norm(d);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+  env[key] = dirs.join(sep);
   env.max_print_line = "10000";
   env.error_line = "254";
   env.half_error_line = "238";

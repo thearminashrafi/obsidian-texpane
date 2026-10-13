@@ -72,6 +72,8 @@ describe("inline", () => {
     const m = ser("[text _x_](https://a.b/c?d=1&e=2#f) and https://example.com/p_q now\n");
     expect(m.r.latex).toContain("\\href{https://a.b/c?d=1\\&e=2\\#f}{text \\emph{x}}");
     expect(m.r.latex).toContain("\\url{https://example.com/p_q}");
+    const u = ser("<https://e.com/a%41#b&c>");
+    expect(u.r.latex).toContain("\\href{https://e.com/a\\%41\\#b\\&c}{\\texttt{https://e.com/a\\%41\\#b\\&c}}");
     expect(m.r.usesLinks).toBe(true);
     expect(ser("no links").r.usesLinks).toBe(false);
   });

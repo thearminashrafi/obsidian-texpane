@@ -98,20 +98,32 @@ describe("detectToolchain", () => {
   });
 });
 
+const noDirs = { isDir: () => false, readdir: () => [] as string[] };
 describe("buildEnv", () => {
   it("prepends binDir to PATH, sets max_print_line, keeps other vars", () => {
     const info = { binDir: "/Library/TeX/texbin" } as any;
-    const e = buildEnv(info, { PATH: "/usr/bin", HOME: "/h" }, "darwin");
+    const e = buildEnv(info, { PATH: "/usr/bin", HOME: "/h" }, "darwin", noDirs);
     expect(e.PATH).toBe("/Library/TeX/texbin:/usr/bin");
     expect(e.max_print_line).toBe("10000");
     expect(e.HOME).toBe("/h");
   });
   it("windows uses ; and the existing Path key", () => {
-    const e = buildEnv({ binDir: "C:\\tex\\bin" } as any, { Path: "C:\\Windows" }, "win32");
+    const e = buildEnv({ binDir: "C:\\tex\\bin" } as any, { Path: "C:\\Windows" }, "win32", noDirs);
     expect(e.Path).toBe("C:\\tex\\bin;C:\\Windows");
   });
+  it("prepends the existing known TeX folders after binDir (newest TeX Live only), deduplicated", () => {
+    const existing = new Set(["/Library/TeX/texbin", "/opt/homebrew/bin", "/usr/local/texlive/2025/bin/universal-darwin"]);
+    const sfs = {
+      isDir: (p: string) => existing.has(p),
+      readdir: (p: string) => (p === "/usr/local/texlive" ? ["2024", "2025", "texmf-local"] : p === "/usr/local/texlive/2025/bin" ? ["universal-darwin"] : p === "/usr/local/texlive/2024/bin" ? ["universal-darwin"] : []),
+    };
+    const e = buildEnv({ binDir: "/opt/homebrew/bin" } as any, { PATH: "/usr/bin:/Library/TeX/texbin/:/bin" }, "darwin", sfs);
+    expect(e.PATH).toBe("/opt/homebrew/bin:/Library/TeX/texbin:/usr/local/texlive/2025/bin/universal-darwin:/usr/bin:/bin");
+    const w = buildEnv({ binDir: null } as any, { Path: "C:\\Windows" }, "win32", { isDir: () => true, readdir: (p: string) => (p === "C:\\texlive" ? ["2025"] : ["windows"]) });
+    expect(w.Path).toBe("C:\\texlive\\2025\\bin\\windows;C:\\Windows");
+  });
   it("no binDir leaves PATH alone", () => {
-    const e = buildEnv({ binDir: null } as any, { PATH: "/x" }, "linux");
+    const e = buildEnv({ binDir: null } as any, { PATH: "/x" }, "linux", noDirs);
     expect(e.PATH).toBe("/x");
   });
 });

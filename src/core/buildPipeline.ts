@@ -80,22 +80,27 @@ export function documentClassEnd(text: string): number {
     const before = m[0].slice(0, m[0].length - "\\documentclass".length);
     if (/(^|[^\\])%/.test(before)) continue;
     let i = m.index + m[0].length;
-    while (/\s/.test(text[i] ?? "")) i++;
+    const skipSpace = () => {
+      while (/\s/.test(text[i] ?? "") || text[i] === "%") i = text[i] === "%" ? (text.indexOf("\n", i) < 0 ? text.length : text.indexOf("\n", i)) : i + 1;
+    };
+    skipSpace();
     if (text[i] === "[") {
       let depth = 0;
       for (; i < text.length; i++) {
-        if (text[i] === "[") depth++;
+        if (text[i] === "%" && text[i - 1] !== "\\") i = text.indexOf("\n", i) < 0 ? text.length : text.indexOf("\n", i);
+        else if (text[i] === "[") depth++;
         else if (text[i] === "]" && --depth === 0) {
           i++;
           break;
         }
       }
     }
-    while (/\s/.test(text[i] ?? "")) i++;
+    skipSpace();
     if (text[i] !== "{") return -1;
     let depth = 0;
     for (; i < text.length; i++) {
-      if (text[i] === "{") depth++;
+      if (text[i] === "%" && text[i - 1] !== "\\") i = text.indexOf("\n", i) < 0 ? text.length : text.indexOf("\n", i);
+      else if (text[i] === "{") depth++;
       else if (text[i] === "}" && --depth === 0) return i + 1;
     }
     return -1;

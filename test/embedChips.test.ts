@@ -5,7 +5,7 @@ import { scanChips } from "../src/editor/embedChips";
 
 describe("scanChips", () => {
   it("finds macros, skips comments and the selection", () => {
-    const doc = "a \\obsidian{Note A} b % \\obsidian{Hidden}\n\\obsidian[x]{Missing}\n";
+    const doc = "a \\obsidian{Note A} b % \\obsidian{Hidden}\n\\obsidian[x]{Missing} x\\\\obsidian{Escaped}\n";
     const st = EditorState.create({ doc, selection: { anchor: doc.length } });
     const r = scanChips(st, [{ from: 0, to: doc.length }], (n) => n === "Note A");
     expect(r.map((c) => [c.target, c.opts, c.exists])).toEqual([
