@@ -1,0 +1,42 @@
+{
+  "name": "texpane",
+  "version": "0.1.0",
+  "description": "Overleaf-style LaTeX workspace inside Obsidian",
+  "main": "main.js",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc --noEmit && node esbuild.config.mjs production && node scripts/release.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint:colors": "node scripts/lint-colors.mjs"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@codemirror/autocomplete": "^6.20.3",
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/language": "^6.13.1",
+    "@codemirror/legacy-modes": "^6.5.5",
+    "@codemirror/lint": "^6.9.7",
+    "@codemirror/search": "^6.7.2",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.13",
+    "@lezer/common": "^1.5.3",
+    "@lezer/highlight": "^1.2.5",
+    "@lezer/lr": "^1.4.11",
+    "@types/mdast": "^4.0.4",
+    "@types/node": "^20.19.43",
+    "builtin-modules": "^5.4.0",
+    "esbuild": "^0.21.5",
+    "mdast-util-from-markdown": "^2.1.0",
+    "mdast-util-gfm": "^3.1.0",
+    "mdast-util-gfm-table": "^2.0.0",
+    "mdast-util-math": "^3.0.0",
+    "micromark-extension-gfm": "^3.0.0",
+    "micromark-extension-math": "^3.1.0",
+    "obsidian": "^1.14.4",
+    "typescript": "5.5",
+    "vitest": "^2.1.9"
+  }
+}

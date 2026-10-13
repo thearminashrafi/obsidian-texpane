@@ -1,0 +1,14 @@
+[0] Config.pm:307> INFO - This is Biber 2.19
+[0] Config.pm:310> INFO - Logfile is 'main.blg'
+[38] biber:340> INFO - === Tue Oct 13, 2026, 10:00:00
+[52] Biber.pm:415> INFO - Reading 'main.bcf'
+[80] Biber.pm:994> INFO - Found 2 citekeys in bib section 0
+[88] Utils.pm:411> INFO - Processing section 0
+[90] Biber.pm:1380> INFO - Looking for bibtex format file 'refs.bib' for section 0
+[91] bibtex.pm:1581> INFO - LaTeX decoding ...
+[95] Utils.pm:164> ERROR - BibTeX subsystem: /tmp/par/refs.bib_1234.utf8, line 3, syntax error: found "title", expected end of entry ("}" or ")")
+[96] Biber.pm:1470> WARN - I didn't find a database entry for 'ghost' (section 0)
+[97] Utils.pm:219> WARN - Entry 'known' (refs.bib) is missing field 'year'
+[99] Biber.pm:2300> ERROR - Cannot find 'other.bib'!
+[100] Biber.pm:140> INFO - WARNINGS: 2
+[100] Biber.pm:141> INFO - ERRORS: 2

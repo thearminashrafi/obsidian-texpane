@@ -1,0 +1,9 @@
+This is SyncTeX command line utility, version 1.5
+SyncTeX result begin
+Output:C:/Users/me/My Thesis/.texpane/build/main.pdf
+Input:C:/Users/me/My Thesis/./main.tex
+Line:3
+Column:-1
+Offset:0
+Context:
+SyncTeX result end

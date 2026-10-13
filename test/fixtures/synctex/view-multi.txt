@@ -1,0 +1,27 @@
+This is SyncTeX command line utility, version 1.5
+SyncTeX result begin
+Output:/tmp/x/main.pdf
+Page:1
+x:171.128296
+y:134.764618
+h:133.768356
+v:136.701797
+W:343.711060
+H:8.855677
+before:
+offset:-1
+middle:
+after:
+Output:/tmp/x/main.pdf
+Page:2
+x:100.5
+y:200.25
+h:90.0
+v:210.0
+W:300.0
+H:9.5
+before:
+offset:-1
+middle:
+after:
+SyncTeX result end

@@ -1,0 +1,1840 @@
+[
+ {
+  "label": "\\part",
+  "type": "command",
+  "snippet": "\\part{${1:title}}",
+  "detail": "Part heading"
+ },
+ {
+  "label": "\\part*",
+  "type": "command",
+  "snippet": "\\part*{${1:title}}",
+  "detail": "Part heading (unnumbered)"
+ },
+ {
+  "label": "\\chapter",
+  "type": "command",
+  "snippet": "\\chapter{${1:title}}",
+  "detail": "Chapter heading"
+ },
+ {
+  "label": "\\chapter*",
+  "type": "command",
+  "snippet": "\\chapter*{${1:title}}",
+  "detail": "Chapter heading (unnumbered)"
+ },
+ {
+  "label": "\\section",
+  "type": "command",
+  "snippet": "\\section{${1:title}}",
+  "detail": "Section heading"
+ },
+ {
+  "label": "\\section*",
+  "type": "command",
+  "snippet": "\\section*{${1:title}}",
+  "detail": "Section heading (unnumbered)"
+ },
+ {
+  "label": "\\subsection",
+  "type": "command",
+  "snippet": "\\subsection{${1:title}}",
+  "detail": "Subsection heading"
+ },
+ {
+  "label": "\\subsection*",
+  "type": "command",
+  "snippet": "\\subsection*{${1:title}}",
+  "detail": "Subsection heading (unnumbered)"
+ },
+ {
+  "label": "\\subsubsection",
+  "type": "command",
+  "snippet": "\\subsubsection{${1:title}}",
+  "detail": "Subsubsection heading"
+ },
+ {
+  "label": "\\subsubsection*",
+  "type": "command",
+  "snippet": "\\subsubsection*{${1:title}}",
+  "detail": "Subsubsection heading (unnumbered)"
+ },
+ {
+  "label": "\\paragraph",
+  "type": "command",
+  "snippet": "\\paragraph{${1:title}}",
+  "detail": "Paragraph heading"
+ },
+ {
+  "label": "\\paragraph*",
+  "type": "command",
+  "snippet": "\\paragraph*{${1:title}}",
+  "detail": "Paragraph heading (unnumbered)"
+ },
+ {
+  "label": "\\subparagraph",
+  "type": "command",
+  "snippet": "\\subparagraph{${1:title}}",
+  "detail": "Subparagraph heading"
+ },
+ {
+  "label": "\\subparagraph*",
+  "type": "command",
+  "snippet": "\\subparagraph*{${1:title}}",
+  "detail": "Subparagraph heading (unnumbered)"
+ },
+ {
+  "label": "\\title",
+  "type": "command",
+  "snippet": "\\title{${1:title}}"
+ },
+ {
+  "label": "\\author",
+  "type": "command",
+  "snippet": "\\author{${1:name}}"
+ },
+ {
+  "label": "\\date",
+  "type": "command",
+  "snippet": "\\date{${1:\\today}}"
+ },
+ {
+  "label": "\\maketitle",
+  "type": "command"
+ },
+ {
+  "label": "\\today",
+  "type": "command"
+ },
+ {
+  "label": "\\tableofcontents",
+  "type": "command"
+ },
+ {
+  "label": "\\appendix",
+  "type": "command"
+ },
+ {
+  "label": "\\thanks",
+  "type": "command",
+  "snippet": "\\thanks{${1:text}}"
+ },
+ {
+  "label": "\\textbf",
+  "type": "command",
+  "snippet": "\\textbf{${1:text}}",
+  "detail": "Bold"
+ },
+ {
+  "label": "\\textit",
+  "type": "command",
+  "snippet": "\\textit{${1:text}}",
+  "detail": "Italic"
+ },
+ {
+  "label": "\\emph",
+  "type": "command",
+  "snippet": "\\emph{${1:text}}",
+  "detail": "Emphasis"
+ },
+ {
+  "label": "\\texttt",
+  "type": "command",
+  "snippet": "\\texttt{${1:text}}",
+  "detail": "Monospace"
+ },
+ {
+  "label": "\\textsc",
+  "type": "command",
+  "snippet": "\\textsc{${1:text}}",
+  "detail": "Small caps"
+ },
+ {
+  "label": "\\textsf",
+  "type": "command",
+  "snippet": "\\textsf{${1:text}}",
+  "detail": "Sans serif"
+ },
+ {
+  "label": "\\textrm",
+  "type": "command",
+  "snippet": "\\textrm{${1:text}}",
+  "detail": "Roman"
+ },
+ {
+  "label": "\\underline",
+  "type": "command",
+  "snippet": "\\underline{${1:text}}",
+  "detail": "Underline"
+ },
+ {
+  "label": "\\textsl",
+  "type": "command",
+  "snippet": "\\textsl{${1:text}}",
+  "detail": "Slanted"
+ },
+ {
+  "label": "\\textup",
+  "type": "command",
+  "snippet": "\\textup{${1:text}}",
+  "detail": "Upright"
+ },
+ {
+  "label": "\\textmd",
+  "type": "command",
+  "snippet": "\\textmd{${1:text}}",
+  "detail": "Medium weight"
+ },
+ {
+  "label": "\\textnormal",
+  "type": "command",
+  "snippet": "\\textnormal{${1:text}}",
+  "detail": "Normal text"
+ },
+ {
+  "label": "\\tiny",
+  "type": "command",
+  "detail": "Font size"
+ },
+ {
+  "label": "\\scriptsize",
+  "type": "command",
+  "detail": "Font size"
+ },
+ {
+  "label": "\\footnotesize",
+  "type": "command",
+  "detail": "Font size"
+ },
+ {
+  "label": "\\small",
+  "type": "command",
+  "detail": "Font size"
+ },
+ {
+  "label": "\\normalsize",
+  "type": "command",
+  "detail": "Font size"
+ },
+ {
+  "label": "\\large",
+  "type": "command",
+  "detail": "Font size"
+ },
+ {
+  "label": "\\Large",
+  "type": "command",
+  "detail": "Font size"
+ },
+ {
+  "label": "\\LARGE",
+  "type": "command",
+  "detail": "Font size"
+ },
+ {
+  "label": "\\huge",
+  "type": "command",
+  "detail": "Font size"
+ },
+ {
+  "label": "\\Huge",
+  "type": "command",
+  "detail": "Font size"
+ },
+ {
+  "label": "\\bfseries",
+  "type": "command",
+  "detail": "Declaration"
+ },
+ {
+  "label": "\\itshape",
+  "type": "command",
+  "detail": "Declaration"
+ },
+ {
+  "label": "\\ttfamily",
+  "type": "command",
+  "detail": "Declaration"
+ },
+ {
+  "label": "\\sffamily",
+  "type": "command",
+  "detail": "Declaration"
+ },
+ {
+  "label": "\\rmfamily",
+  "type": "command",
+  "detail": "Declaration"
+ },
+ {
+  "label": "\\scshape",
+  "type": "command",
+  "detail": "Declaration"
+ },
+ {
+  "label": "\\centering",
+  "type": "command",
+  "detail": "Declaration"
+ },
+ {
+  "label": "\\raggedright",
+  "type": "command",
+  "detail": "Declaration"
+ },
+ {
+  "label": "\\raggedleft",
+  "type": "command",
+  "detail": "Declaration"
+ },
+ {
+  "label": "\\footnote",
+  "type": "command",
+  "snippet": "\\footnote{${1:text}}"
+ },
+ {
+  "label": "\\footnotemark",
+  "type": "command"
+ },
+ {
+  "label": "\\footnotetext",
+  "type": "command",
+  "snippet": "\\footnotetext{${1:text}}"
+ },
+ {
+  "label": "\\marginpar",
+  "type": "command",
+  "snippet": "\\marginpar{${1:text}}"
+ },
+ {
+  "label": "\\verb",
+  "type": "command",
+  "snippet": "\\verb|${1:text}|"
+ },
+ {
+  "label": "\\url",
+  "type": "command",
+  "snippet": "\\url{${1:https://}}",
+  "package": "hyperref"
+ },
+ {
+  "label": "\\href",
+  "type": "command",
+  "snippet": "\\href{${1:url}}{${2:text}}",
+  "package": "hyperref"
+ },
+ {
+  "label": "\\textcolor",
+  "type": "command",
+  "snippet": "\\textcolor{${1:red}}{${2:text}}",
+  "package": "xcolor"
+ },
+ {
+  "label": "\\color",
+  "type": "command",
+  "snippet": "\\color{${1:red}}",
+  "package": "xcolor"
+ },
+ {
+  "label": "\\colorbox",
+  "type": "command",
+  "snippet": "\\colorbox{${1:yellow}}{${2:text}}",
+  "package": "xcolor"
+ },
+ {
+  "label": "\\hspace",
+  "type": "command",
+  "snippet": "\\hspace{${1:1em}}"
+ },
+ {
+  "label": "\\vspace",
+  "type": "command",
+  "snippet": "\\vspace{${1:1em}}"
+ },
+ {
+  "label": "\\hfill",
+  "type": "command"
+ },
+ {
+  "label": "\\vfill",
+  "type": "command"
+ },
+ {
+  "label": "\\newline",
+  "type": "command"
+ },
+ {
+  "label": "\\newpage",
+  "type": "command"
+ },
+ {
+  "label": "\\clearpage",
+  "type": "command"
+ },
+ {
+  "label": "\\noindent",
+  "type": "command"
+ },
+ {
+  "label": "\\indent",
+  "type": "command"
+ },
+ {
+  "label": "\\par",
+  "type": "command"
+ },
+ {
+  "label": "\\linebreak",
+  "type": "command"
+ },
+ {
+  "label": "\\pagebreak",
+  "type": "command"
+ },
+ {
+  "label": "\\medskip",
+  "type": "command"
+ },
+ {
+  "label": "\\bigskip",
+  "type": "command"
+ },
+ {
+  "label": "\\smallskip",
+  "type": "command"
+ },
+ {
+  "label": "\\quad",
+  "type": "command"
+ },
+ {
+  "label": "\\qquad",
+  "type": "command"
+ },
+ {
+  "label": "\\ldots",
+  "type": "command"
+ },
+ {
+  "label": "\\dots",
+  "type": "command"
+ },
+ {
+  "label": "\\centerline",
+  "type": "command",
+  "snippet": "\\centerline{${1:text}}"
+ },
+ {
+  "label": "\\rule",
+  "type": "command",
+  "snippet": "\\rule{${1:\\linewidth}}{${2:0.4pt}}"
+ },
+ {
+  "label": "\\hrule",
+  "type": "command"
+ },
+ {
+  "label": "\\phantom",
+  "type": "command",
+  "snippet": "\\phantom{${1:text}}"
+ },
+ {
+  "label": "\\mbox",
+  "type": "command",
+  "snippet": "\\mbox{${1:text}}"
+ },
+ {
+  "label": "\\makebox",
+  "type": "command",
+  "snippet": "\\makebox[${1:width}][${2:c}]{${3:text}}"
+ },
+ {
+  "label": "\\parbox",
+  "type": "command",
+  "snippet": "\\parbox{${1:width}}{${2:text}}"
+ },
+ {
+  "label": "\\fbox",
+  "type": "command",
+  "snippet": "\\fbox{${1:text}}"
+ },
+ {
+  "label": "\\framebox",
+  "type": "command",
+  "snippet": "\\framebox{${1:text}}"
+ },
+ {
+  "label": "\\label",
+  "type": "command",
+  "snippet": "\\label{${1:key}}"
+ },
+ {
+  "label": "\\ref",
+  "type": "command",
+  "snippet": "\\ref{${1:key}}"
+ },
+ {
+  "label": "\\eqref",
+  "type": "command",
+  "snippet": "\\eqref{${1:key}}",
+  "package": "amsmath"
+ },
+ {
+  "label": "\\pageref",
+  "type": "command",
+  "snippet": "\\pageref{${1:key}}"
+ },
+ {
+  "label": "\\autoref",
+  "type": "command",
+  "snippet": "\\autoref{${1:key}}",
+  "package": "hyperref"
+ },
+ {
+  "label": "\\cref",
+  "type": "command",
+  "snippet": "\\cref{${1:key}}",
+  "package": "cleveref"
+ },
+ {
+  "label": "\\Cref",
+  "type": "command",
+  "snippet": "\\Cref{${1:key}}",
+  "package": "cleveref"
+ },
+ {
+  "label": "\\nameref",
+  "type": "command",
+  "snippet": "\\nameref{${1:key}}",
+  "package": "hyperref"
+ },
+ {
+  "label": "\\cite",
+  "type": "command",
+  "snippet": "\\cite{${1:key}}"
+ },
+ {
+  "label": "\\citep",
+  "type": "command",
+  "snippet": "\\citep{${1:key}}",
+  "package": "natbib"
+ },
+ {
+  "label": "\\citet",
+  "type": "command",
+  "snippet": "\\citet{${1:key}}",
+  "package": "natbib"
+ },
+ {
+  "label": "\\parencite",
+  "type": "command",
+  "snippet": "\\parencite{${1:key}}",
+  "package": "biblatex"
+ },
+ {
+  "label": "\\textcite",
+  "type": "command",
+  "snippet": "\\textcite{${1:key}}",
+  "package": "biblatex"
+ },
+ {
+  "label": "\\autocite",
+  "type": "command",
+  "snippet": "\\autocite{${1:key}}",
+  "package": "biblatex"
+ },
+ {
+  "label": "\\bibliography",
+  "type": "command",
+  "snippet": "\\bibliography{${1:refs}}"
+ },
+ {
+  "label": "\\bibliographystyle",
+  "type": "command",
+  "snippet": "\\bibliographystyle{${1:plain}}"
+ },
+ {
+  "label": "\\addbibresource",
+  "type": "command",
+  "snippet": "\\addbibresource{${1:refs.bib}}",
+  "package": "biblatex"
+ },
+ {
+  "label": "\\printbibliography",
+  "type": "command",
+  "package": "biblatex"
+ },
+ {
+  "label": "\\nocite",
+  "type": "command",
+  "snippet": "\\nocite{${1:*}}"
+ },
+ {
+  "label": "\\index",
+  "type": "command",
+  "snippet": "\\index{${1:term}}"
+ },
+ {
+  "label": "\\printindex",
+  "type": "command"
+ },
+ {
+  "label": "\\glossary",
+  "type": "command",
+  "snippet": "\\glossary{${1:term}}"
+ },
+ {
+  "label": "\\documentclass",
+  "type": "command",
+  "snippet": "\\documentclass[${1:12pt}]{${2:article}}"
+ },
+ {
+  "label": "\\usepackage",
+  "type": "command",
+  "snippet": "\\usepackage{${1:package}}"
+ },
+ {
+  "label": "\\usepackage[]",
+  "type": "command",
+  "snippet": "\\usepackage[${1:options}]{${2:package}}"
+ },
+ {
+  "label": "\\input",
+  "type": "command",
+  "snippet": "\\input{${1:file}}"
+ },
+ {
+  "label": "\\include",
+  "type": "command",
+  "snippet": "\\include{${1:file}}"
+ },
+ {
+  "label": "\\includeonly",
+  "type": "command",
+  "snippet": "\\includeonly{${1:file}}"
+ },
+ {
+  "label": "\\subfile",
+  "type": "command",
+  "snippet": "\\subfile{${1:file}}",
+  "package": "subfiles"
+ },
+ {
+  "label": "\\begin",
+  "type": "command",
+  "snippet": "\\begin{${1:environment}}\n\t${2}\n\\end{${1:environment}}"
+ },
+ {
+  "label": "\\end",
+  "type": "command",
+  "snippet": "\\end{${1:environment}}"
+ },
+ {
+  "label": "\\item",
+  "type": "command"
+ },
+ {
+  "label": "\\item[]",
+  "type": "command",
+  "snippet": "\\item[${1:label}] ${2}"
+ },
+ {
+  "label": "\\caption",
+  "type": "command",
+  "snippet": "\\caption{${1:caption}}"
+ },
+ {
+  "label": "\\captionof",
+  "type": "command",
+  "snippet": "\\captionof{${1:figure}}{${2:caption}}"
+ },
+ {
+  "label": "\\includegraphics",
+  "type": "command",
+  "snippet": "\\includegraphics[width=${1:\\linewidth}]{${2:file}}",
+  "package": "graphicx"
+ },
+ {
+  "label": "\\graphicspath",
+  "type": "command",
+  "snippet": "\\graphicspath{{${1:figures/}}}",
+  "package": "graphicx"
+ },
+ {
+  "label": "\\includepdf",
+  "type": "command",
+  "snippet": "\\includepdf[pages=${1:-}]{${2:file.pdf}}",
+  "package": "pdfpages"
+ },
+ {
+  "label": "\\obsidian",
+  "type": "command",
+  "snippet": "\\obsidian{${1:Note}}",
+  "detail": "Embed an Obsidian note"
+ },
+ {
+  "label": "\\obsidian[level=subsection]",
+  "type": "command",
+  "snippet": "\\obsidian[level=${1:subsection}]{${2:Note}}",
+  "detail": "Embed a note at a given heading level"
+ },
+ {
+  "label": "\\hline",
+  "type": "command"
+ },
+ {
+  "label": "\\cline",
+  "type": "command",
+  "snippet": "\\cline{${1:1-2}}"
+ },
+ {
+  "label": "\\multicolumn",
+  "type": "command",
+  "snippet": "\\multicolumn{${1:2}}{${2:c}}{${3:text}}"
+ },
+ {
+  "label": "\\multirow",
+  "type": "command",
+  "snippet": "\\multirow{${1:2}}{*}{${2:text}}",
+  "package": "multirow"
+ },
+ {
+  "label": "\\toprule",
+  "type": "command",
+  "package": "booktabs"
+ },
+ {
+  "label": "\\midrule",
+  "type": "command",
+  "package": "booktabs"
+ },
+ {
+  "label": "\\bottomrule",
+  "type": "command",
+  "package": "booktabs"
+ },
+ {
+  "label": "\\arraystretch",
+  "type": "command"
+ },
+ {
+  "label": "\\tabularnewline",
+  "type": "command"
+ },
+ {
+  "label": "\\frac",
+  "type": "command",
+  "snippet": "\\frac{${1}}{${2}}"
+ },
+ {
+  "label": "\\dfrac",
+  "type": "command",
+  "snippet": "\\dfrac{${1}}{${2}}"
+ },
+ {
+  "label": "\\tfrac",
+  "type": "command",
+  "snippet": "\\tfrac{${1}}{${2}}"
+ },
+ {
+  "label": "\\sqrt",
+  "type": "command",
+  "snippet": "\\sqrt{${1}}"
+ },
+ {
+  "label": "\\sqrt[]",
+  "type": "command",
+  "snippet": "\\sqrt[${1:n}]{${2}}"
+ },
+ {
+  "label": "\\sum",
+  "type": "command",
+  "snippet": "\\sum_{${1:i=1}}^{${2:n}}"
+ },
+ {
+  "label": "\\prod",
+  "type": "command",
+  "snippet": "\\prod_{${1:i=1}}^{${2:n}}"
+ },
+ {
+  "label": "\\int",
+  "type": "command",
+  "snippet": "\\int_{${1:a}}^{${2:b}}"
+ },
+ {
+  "label": "\\oint",
+  "type": "command",
+  "snippet": "\\oint"
+ },
+ {
+  "label": "\\lim",
+  "type": "command",
+  "snippet": "\\lim_{${1:x \\to \\infty}}"
+ },
+ {
+  "label": "\\sup",
+  "type": "command",
+  "snippet": "\\sup"
+ },
+ {
+  "label": "\\inf",
+  "type": "command",
+  "snippet": "\\inf"
+ },
+ {
+  "label": "\\max",
+  "type": "command",
+  "snippet": "\\max"
+ },
+ {
+  "label": "\\min",
+  "type": "command",
+  "snippet": "\\min"
+ },
+ {
+  "label": "\\det",
+  "type": "command",
+  "snippet": "\\det"
+ },
+ {
+  "label": "\\log",
+  "type": "command",
+  "snippet": "\\log"
+ },
+ {
+  "label": "\\ln",
+  "type": "command",
+  "snippet": "\\ln"
+ },
+ {
+  "label": "\\exp",
+  "type": "command",
+  "snippet": "\\exp"
+ },
+ {
+  "label": "\\sin",
+  "type": "command",
+  "snippet": "\\sin"
+ },
+ {
+  "label": "\\cos",
+  "type": "command",
+  "snippet": "\\cos"
+ },
+ {
+  "label": "\\tan",
+  "type": "command",
+  "snippet": "\\tan"
+ },
+ {
+  "label": "\\arcsin",
+  "type": "command",
+  "snippet": "\\arcsin"
+ },
+ {
+  "label": "\\sinh",
+  "type": "command",
+  "snippet": "\\sinh"
+ },
+ {
+  "label": "\\cosh",
+  "type": "command",
+  "snippet": "\\cosh"
+ },
+ {
+  "label": "\\partial",
+  "type": "command",
+  "snippet": "\\partial"
+ },
+ {
+  "label": "\\nabla",
+  "type": "command",
+  "snippet": "\\nabla"
+ },
+ {
+  "label": "\\infty",
+  "type": "command",
+  "snippet": "\\infty"
+ },
+ {
+  "label": "\\cdot",
+  "type": "command",
+  "snippet": "\\cdot"
+ },
+ {
+  "label": "\\cdots",
+  "type": "command",
+  "snippet": "\\cdots"
+ },
+ {
+  "label": "\\vdots",
+  "type": "command",
+  "snippet": "\\vdots"
+ },
+ {
+  "label": "\\ddots",
+  "type": "command",
+  "snippet": "\\ddots"
+ },
+ {
+  "label": "\\times",
+  "type": "command",
+  "snippet": "\\times"
+ },
+ {
+  "label": "\\div",
+  "type": "command",
+  "snippet": "\\div"
+ },
+ {
+  "label": "\\pm",
+  "type": "command",
+  "snippet": "\\pm"
+ },
+ {
+  "label": "\\mp",
+  "type": "command",
+  "snippet": "\\mp"
+ },
+ {
+  "label": "\\leq",
+  "type": "command",
+  "snippet": "\\leq"
+ },
+ {
+  "label": "\\geq",
+  "type": "command",
+  "snippet": "\\geq"
+ },
+ {
+  "label": "\\neq",
+  "type": "command",
+  "snippet": "\\neq"
+ },
+ {
+  "label": "\\approx",
+  "type": "command",
+  "snippet": "\\approx"
+ },
+ {
+  "label": "\\equiv",
+  "type": "command",
+  "snippet": "\\equiv"
+ },
+ {
+  "label": "\\sim",
+  "type": "command",
+  "snippet": "\\sim"
+ },
+ {
+  "label": "\\simeq",
+  "type": "command",
+  "snippet": "\\simeq"
+ },
+ {
+  "label": "\\propto",
+  "type": "command",
+  "snippet": "\\propto"
+ },
+ {
+  "label": "\\ll",
+  "type": "command",
+  "snippet": "\\ll"
+ },
+ {
+  "label": "\\gg",
+  "type": "command",
+  "snippet": "\\gg"
+ },
+ {
+  "label": "\\in",
+  "type": "command",
+  "snippet": "\\in"
+ },
+ {
+  "label": "\\notin",
+  "type": "command",
+  "snippet": "\\notin"
+ },
+ {
+  "label": "\\subset",
+  "type": "command",
+  "snippet": "\\subset"
+ },
+ {
+  "label": "\\subseteq",
+  "type": "command",
+  "snippet": "\\subseteq"
+ },
+ {
+  "label": "\\supset",
+  "type": "command",
+  "snippet": "\\supset"
+ },
+ {
+  "label": "\\cup",
+  "type": "command",
+  "snippet": "\\cup"
+ },
+ {
+  "label": "\\cap",
+  "type": "command",
+  "snippet": "\\cap"
+ },
+ {
+  "label": "\\setminus",
+  "type": "command",
+  "snippet": "\\setminus"
+ },
+ {
+  "label": "\\emptyset",
+  "type": "command",
+  "snippet": "\\emptyset"
+ },
+ {
+  "label": "\\forall",
+  "type": "command",
+  "snippet": "\\forall"
+ },
+ {
+  "label": "\\exists",
+  "type": "command",
+  "snippet": "\\exists"
+ },
+ {
+  "label": "\\neg",
+  "type": "command",
+  "snippet": "\\neg"
+ },
+ {
+  "label": "\\land",
+  "type": "command",
+  "snippet": "\\land"
+ },
+ {
+  "label": "\\lor",
+  "type": "command",
+  "snippet": "\\lor"
+ },
+ {
+  "label": "\\implies",
+  "type": "command",
+  "snippet": "\\implies"
+ },
+ {
+  "label": "\\iff",
+  "type": "command",
+  "snippet": "\\iff"
+ },
+ {
+  "label": "\\to",
+  "type": "command",
+  "snippet": "\\to"
+ },
+ {
+  "label": "\\mapsto",
+  "type": "command",
+  "snippet": "\\mapsto"
+ },
+ {
+  "label": "\\rightarrow",
+  "type": "command",
+  "snippet": "\\rightarrow"
+ },
+ {
+  "label": "\\Rightarrow",
+  "type": "command",
+  "snippet": "\\Rightarrow"
+ },
+ {
+  "label": "\\leftarrow",
+  "type": "command",
+  "snippet": "\\leftarrow"
+ },
+ {
+  "label": "\\Leftrightarrow",
+  "type": "command",
+  "snippet": "\\Leftrightarrow"
+ },
+ {
+  "label": "\\hat",
+  "type": "command",
+  "snippet": "\\hat{${1}}"
+ },
+ {
+  "label": "\\bar",
+  "type": "command",
+  "snippet": "\\bar{${1}}"
+ },
+ {
+  "label": "\\vec",
+  "type": "command",
+  "snippet": "\\vec{${1}}"
+ },
+ {
+  "label": "\\tilde",
+  "type": "command",
+  "snippet": "\\tilde{${1}}"
+ },
+ {
+  "label": "\\dot",
+  "type": "command",
+  "snippet": "\\dot{${1}}"
+ },
+ {
+  "label": "\\ddot",
+  "type": "command",
+  "snippet": "\\ddot{${1}}"
+ },
+ {
+  "label": "\\overline",
+  "type": "command",
+  "snippet": "\\overline{${1}}"
+ },
+ {
+  "label": "\\underbrace",
+  "type": "command",
+  "snippet": "\\underbrace{${1}}_{${2}}"
+ },
+ {
+  "label": "\\overbrace",
+  "type": "command",
+  "snippet": "\\overbrace{${1}}^{${2}}"
+ },
+ {
+  "label": "\\mathbf",
+  "type": "command",
+  "snippet": "\\mathbf{${1}}"
+ },
+ {
+  "label": "\\mathbb",
+  "type": "command",
+  "snippet": "\\mathbb{${1}}"
+ },
+ {
+  "label": "\\mathcal",
+  "type": "command",
+  "snippet": "\\mathcal{${1}}"
+ },
+ {
+  "label": "\\mathrm",
+  "type": "command",
+  "snippet": "\\mathrm{${1}}"
+ },
+ {
+  "label": "\\mathit",
+  "type": "command",
+  "snippet": "\\mathit{${1}}"
+ },
+ {
+  "label": "\\mathfrak",
+  "type": "command",
+  "snippet": "\\mathfrak{${1}}"
+ },
+ {
+  "label": "\\boldsymbol",
+  "type": "command",
+  "snippet": "\\boldsymbol{${1}}"
+ },
+ {
+  "label": "\\text",
+  "type": "command",
+  "snippet": "\\text{${1}}"
+ },
+ {
+  "label": "\\operatorname",
+  "type": "command",
+  "snippet": "\\operatorname{${1}}"
+ },
+ {
+  "label": "\\left",
+  "type": "command",
+  "snippet": "\\left${1:(} ${2} \\right${3:)}"
+ },
+ {
+  "label": "\\right",
+  "type": "command",
+  "snippet": "\\right"
+ },
+ {
+  "label": "\\big",
+  "type": "command",
+  "snippet": "\\big"
+ },
+ {
+  "label": "\\Big",
+  "type": "command",
+  "snippet": "\\Big"
+ },
+ {
+  "label": "\\langle",
+  "type": "command",
+  "snippet": "\\langle"
+ },
+ {
+  "label": "\\rangle",
+  "type": "command",
+  "snippet": "\\rangle"
+ },
+ {
+  "label": "\\lfloor",
+  "type": "command",
+  "snippet": "\\lfloor"
+ },
+ {
+  "label": "\\rfloor",
+  "type": "command",
+  "snippet": "\\rfloor"
+ },
+ {
+  "label": "\\binom",
+  "type": "command",
+  "snippet": "\\binom{${1}}{${2}}"
+ },
+ {
+  "label": "\\choose",
+  "type": "command",
+  "snippet": "\\choose"
+ },
+ {
+  "label": "\\prime",
+  "type": "command",
+  "snippet": "\\prime"
+ },
+ {
+  "label": "\\angle",
+  "type": "command",
+  "snippet": "\\angle"
+ },
+ {
+  "label": "\\perp",
+  "type": "command",
+  "snippet": "\\perp"
+ },
+ {
+  "label": "\\parallel",
+  "type": "command",
+  "snippet": "\\parallel"
+ },
+ {
+  "label": "\\mid",
+  "type": "command",
+  "snippet": "\\mid"
+ },
+ {
+  "label": "\\tag",
+  "type": "command",
+  "snippet": "\\tag{${1}}"
+ },
+ {
+  "label": "\\nonumber",
+  "type": "command",
+  "snippet": "\\nonumber"
+ },
+ {
+  "label": "\\notag",
+  "type": "command",
+  "snippet": "\\notag"
+ },
+ {
+  "label": "\\displaystyle",
+  "type": "command",
+  "snippet": "\\displaystyle"
+ },
+ {
+  "label": "\\limits",
+  "type": "command",
+  "snippet": "\\limits"
+ },
+ {
+  "label": "\\stackrel",
+  "type": "command",
+  "snippet": "\\stackrel{${1}}{${2}}"
+ },
+ {
+  "label": "\\xrightarrow",
+  "type": "command",
+  "snippet": "\\xrightarrow{${1}}"
+ },
+ {
+  "label": "\\boxed",
+  "type": "command",
+  "snippet": "\\boxed{${1}}"
+ },
+ {
+  "label": "\\substack",
+  "type": "command",
+  "snippet": "\\substack{${1}}"
+ },
+ {
+  "label": "\\alpha",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\beta",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\gamma",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\delta",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\epsilon",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\varepsilon",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\zeta",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\eta",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\theta",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\vartheta",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\iota",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\kappa",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\lambda",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\mu",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\nu",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\xi",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\pi",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\rho",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\sigma",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\tau",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\upsilon",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\phi",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\varphi",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\chi",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\psi",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\omega",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\Gamma",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\Delta",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\Theta",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\Lambda",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\Xi",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\Pi",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\Sigma",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\Upsilon",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\Phi",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\Psi",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\Omega",
+  "type": "command",
+  "detail": "Greek letter"
+ },
+ {
+  "label": "\\newcommand",
+  "type": "command",
+  "snippet": "\\newcommand{\\${1:name}}[${2:1}]{${3:definition}}"
+ },
+ {
+  "label": "\\renewcommand",
+  "type": "command",
+  "snippet": "\\renewcommand{\\${1:name}}[${2:1}]{${3:definition}}"
+ },
+ {
+  "label": "\\providecommand",
+  "type": "command",
+  "snippet": "\\providecommand{\\${1:name}}{${2:definition}}"
+ },
+ {
+  "label": "\\DeclareMathOperator",
+  "type": "command",
+  "snippet": "\\DeclareMathOperator{\\${1:name}}{${2:text}}",
+  "package": "amsmath"
+ },
+ {
+  "label": "\\newtheorem",
+  "type": "command",
+  "snippet": "\\newtheorem{${1:theorem}}{${2:Theorem}}",
+  "package": "amsthm"
+ },
+ {
+  "label": "\\setlength",
+  "type": "command",
+  "snippet": "\\setlength{\\${1:parindent}}{${2:0pt}}"
+ },
+ {
+  "label": "\\addtolength",
+  "type": "command",
+  "snippet": "\\addtolength{\\${1:textwidth}}{${2:1cm}}"
+ },
+ {
+  "label": "\\setcounter",
+  "type": "command",
+  "snippet": "\\setcounter{${1:section}}{${2:0}}"
+ },
+ {
+  "label": "\\newcounter",
+  "type": "command",
+  "snippet": "\\newcounter{${1:name}}"
+ },
+ {
+  "label": "\\pagestyle",
+  "type": "command",
+  "snippet": "\\pagestyle{${1:plain}}"
+ },
+ {
+  "label": "\\thispagestyle",
+  "type": "command",
+  "snippet": "\\thispagestyle{${1:empty}}"
+ },
+ {
+  "label": "\\pagenumbering",
+  "type": "command",
+  "snippet": "\\pagenumbering{${1:arabic}}"
+ },
+ {
+  "label": "\\geometry",
+  "type": "command",
+  "snippet": "\\geometry{${1:margin=1in}}",
+  "package": "geometry"
+ },
+ {
+  "label": "\\definecolor",
+  "type": "command",
+  "snippet": "\\definecolor{${1:name}}{${2:rgb}}{${3:0,0,0}}",
+  "package": "xcolor"
+ },
+ {
+  "label": "\\hypersetup",
+  "type": "command",
+  "snippet": "\\hypersetup{${1:colorlinks=true}}",
+  "package": "hyperref"
+ },
+ {
+  "label": "\\lstinline",
+  "type": "command",
+  "snippet": "\\lstinline|${1:code}|",
+  "package": "listings"
+ },
+ {
+  "label": "\\lstset",
+  "type": "command",
+  "snippet": "\\lstset{${1:language=Python}}",
+  "package": "listings"
+ },
+ {
+  "label": "\\texorpdfstring",
+  "type": "command",
+  "snippet": "\\texorpdfstring{${1:tex}}{${2:pdf}}",
+  "package": "hyperref"
+ },
+ {
+  "label": "\\AtBeginDocument",
+  "type": "command",
+  "snippet": "\\AtBeginDocument{${1}}"
+ },
+ {
+  "label": "\\selectlanguage",
+  "type": "command",
+  "snippet": "\\selectlanguage{${1:english}}",
+  "package": "babel"
+ },
+ {
+  "label": "\\si",
+  "type": "command",
+  "snippet": "\\si{${1:m/s}}",
+  "package": "siunitx"
+ },
+ {
+  "label": "\\SI",
+  "type": "command",
+  "snippet": "\\SI{${1:1}}{${2:m}}",
+  "package": "siunitx"
+ },
+ {
+  "label": "\\num",
+  "type": "command",
+  "snippet": "\\num{${1:1000}}",
+  "package": "siunitx"
+ },
+ {
+  "label": "\\abstractname",
+  "type": "command"
+ },
+ {
+  "label": "\\textbackslash",
+  "type": "command"
+ },
+ {
+  "label": "\\textasciitilde",
+  "type": "command"
+ },
+ {
+  "label": "\\LaTeX",
+  "type": "command"
+ },
+ {
+  "label": "\\TeX",
+  "type": "command"
+ },
+ {
+  "label": "itemize",
+  "type": "environment",
+  "snippet": "\\begin{itemize}\n\t\\item ${1}\n\\end{itemize}"
+ },
+ {
+  "label": "enumerate",
+  "type": "environment",
+  "snippet": "\\begin{enumerate}\n\t\\item ${1}\n\\end{enumerate}"
+ },
+ {
+  "label": "description",
+  "type": "environment",
+  "snippet": "\\begin{description}\n\t\\item[${1:term}] ${2}\n\\end{description}"
+ },
+ {
+  "label": "document",
+  "type": "environment",
+  "snippet": "\\begin{document}\n\t${1}\n\\end{document}"
+ },
+ {
+  "label": "abstract",
+  "type": "environment",
+  "snippet": "\\begin{abstract}\n\t${1}\n\\end{abstract}"
+ },
+ {
+  "label": "equation",
+  "type": "environment",
+  "snippet": "\\begin{equation}\n\t${1}\n\\end{equation}"
+ },
+ {
+  "label": "equation*",
+  "type": "environment",
+  "snippet": "\\begin{equation*}\n\t${1}\n\\end{equation*}"
+ },
+ {
+  "label": "align",
+  "type": "environment",
+  "snippet": "\\begin{align}\n\t${1}\n\\end{align}"
+ },
+ {
+  "label": "align*",
+  "type": "environment",
+  "snippet": "\\begin{align*}\n\t${1}\n\\end{align*}"
+ },
+ {
+  "label": "gather",
+  "type": "environment",
+  "snippet": "\\begin{gather}\n\t${1}\n\\end{gather}"
+ },
+ {
+  "label": "gather*",
+  "type": "environment",
+  "snippet": "\\begin{gather*}\n\t${1}\n\\end{gather*}"
+ },
+ {
+  "label": "multline",
+  "type": "environment",
+  "snippet": "\\begin{multline}\n\t${1}\n\\end{multline}"
+ },
+ {
+  "label": "split",
+  "type": "environment",
+  "snippet": "\\begin{split}\n\t${1}\n\\end{split}"
+ },
+ {
+  "label": "aligned",
+  "type": "environment",
+  "snippet": "\\begin{aligned}\n\t${1}\n\\end{aligned}"
+ },
+ {
+  "label": "cases",
+  "type": "environment",
+  "snippet": "\\begin{cases}\n\t${1} & ${2} \\\\\n\\end{cases}"
+ },
+ {
+  "label": "array",
+  "type": "environment",
+  "snippet": "\\begin{array}{${1:cc}}\n\t${2}\n\\end{array}"
+ },
+ {
+  "label": "matrix",
+  "type": "environment",
+  "snippet": "\\begin{matrix}\n\t${1}\n\\end{matrix}"
+ },
+ {
+  "label": "pmatrix",
+  "type": "environment",
+  "snippet": "\\begin{pmatrix}\n\t${1}\n\\end{pmatrix}"
+ },
+ {
+  "label": "bmatrix",
+  "type": "environment",
+  "snippet": "\\begin{bmatrix}\n\t${1}\n\\end{bmatrix}"
+ },
+ {
+  "label": "vmatrix",
+  "type": "environment",
+  "snippet": "\\begin{vmatrix}\n\t${1}\n\\end{vmatrix}"
+ },
+ {
+  "label": "figure",
+  "type": "environment",
+  "snippet": "\\begin{figure}[${1:htbp}]\n\t\\centering\n\t${2}\n\t\\caption{${3}}\n\t\\label{fig:${4}}\n\\end{figure}"
+ },
+ {
+  "label": "table",
+  "type": "environment",
+  "snippet": "\\begin{table}[${1:htbp}]\n\t\\centering\n\t\\caption{${2}}\n\t\\label{tab:${3}}\n\t${4}\n\\end{table}"
+ },
+ {
+  "label": "tabular",
+  "type": "environment",
+  "snippet": "\\begin{tabular}{${1:ll}}\n\t${2}\n\\end{tabular}"
+ },
+ {
+  "label": "center",
+  "type": "environment",
+  "snippet": "\\begin{center}\n\t${1}\n\\end{center}"
+ },
+ {
+  "label": "flushleft",
+  "type": "environment",
+  "snippet": "\\begin{flushleft}\n\t${1}\n\\end{flushleft}"
+ },
+ {
+  "label": "flushright",
+  "type": "environment",
+  "snippet": "\\begin{flushright}\n\t${1}\n\\end{flushright}"
+ },
+ {
+  "label": "quote",
+  "type": "environment",
+  "snippet": "\\begin{quote}\n\t${1}\n\\end{quote}"
+ },
+ {
+  "label": "quotation",
+  "type": "environment",
+  "snippet": "\\begin{quotation}\n\t${1}\n\\end{quotation}"
+ },
+ {
+  "label": "verbatim",
+  "type": "environment",
+  "snippet": "\\begin{verbatim}\n${1}\n\\end{verbatim}"
+ },
+ {
+  "label": "minipage",
+  "type": "environment",
+  "snippet": "\\begin{minipage}{${1:0.5\\textwidth}}\n\t${2}\n\\end{minipage}"
+ },
+ {
+  "label": "theorem",
+  "type": "environment",
+  "snippet": "\\begin{theorem}\n\t${1}\n\\end{theorem}"
+ },
+ {
+  "label": "lemma",
+  "type": "environment",
+  "snippet": "\\begin{lemma}\n\t${1}\n\\end{lemma}"
+ },
+ {
+  "label": "proposition",
+  "type": "environment",
+  "snippet": "\\begin{proposition}\n\t${1}\n\\end{proposition}"
+ },
+ {
+  "label": "corollary",
+  "type": "environment",
+  "snippet": "\\begin{corollary}\n\t${1}\n\\end{corollary}"
+ },
+ {
+  "label": "definition",
+  "type": "environment",
+  "snippet": "\\begin{definition}\n\t${1}\n\\end{definition}"
+ },
+ {
+  "label": "example",
+  "type": "environment",
+  "snippet": "\\begin{example}\n\t${1}\n\\end{example}"
+ },
+ {
+  "label": "remark",
+  "type": "environment",
+  "snippet": "\\begin{remark}\n\t${1}\n\\end{remark}"
+ },
+ {
+  "label": "proof",
+  "type": "environment",
+  "snippet": "\\begin{proof}\n\t${1}\n\\end{proof}"
+ },
+ {
+  "label": "lstlisting",
+  "type": "environment",
+  "snippet": "\\begin{lstlisting}[language=${1:Python}]\n${2}\n\\end{lstlisting}"
+ },
+ {
+  "label": "thebibliography",
+  "type": "environment",
+  "snippet": "\\begin{thebibliography}{${1:99}}\n\t\\bibitem{${2:key}} ${3}\n\\end{thebibliography}"
+ },
+ {
+  "label": "frame",
+  "type": "environment",
+  "snippet": "\\begin{frame}{${1:title}}\n\t${2}\n\\end{frame}"
+ },
+ {
+  "label": "tikzpicture",
+  "type": "environment",
+  "snippet": "\\begin{tikzpicture}\n\t${1}\n\\end{tikzpicture}"
+ },
+ {
+  "label": "subfigure",
+  "type": "environment",
+  "snippet": "\\begin{subfigure}{${1:0.45\\textwidth}}\n\t${2}\n\\end{subfigure}"
+ },
+ {
+  "label": "tabularx",
+  "type": "environment",
+  "snippet": "\\begin{tabularx}{${1:\\textwidth}}{${2:lX}}\n\t${3}\n\\end{tabularx}"
+ },
+ {
+  "label": "longtable",
+  "type": "environment",
+  "snippet": "\\begin{longtable}{${1:ll}}\n\t${2}\n\\end{longtable}"
+ },
+ {
+  "label": "eqnarray",
+  "type": "environment",
+  "snippet": "\\begin{eqnarray}\n\t${1}\n\\end{eqnarray}"
+ },
+ {
+  "label": "titlepage",
+  "type": "environment",
+  "snippet": "\\begin{titlepage}\n\t${1}\n\\end{titlepage}"
+ },
+ {
+  "label": "appendix",
+  "type": "environment",
+  "snippet": "\\begin{appendix}\n\t${1}\n\\end{appendix}"
+ }
+]

@@ -1,0 +1,55 @@
+This is BibTeX, Version 0.99d (TeX Live 2023/Debian)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: main.aux
+The style file: plain.bst
+Database file #1: refs.bib
+I was expecting a `,' or a `}'---line 3 of file refs.bib
+ :   
+ :   title={A Title},
+(Error may have been on previous line)
+I'm skipping whatever remains of this entry
+Warning--empty title in known
+Warning--empty journal in known
+Warning--empty year in known
+You've used 1 entry,
+            2118 wiz_defined-function locations,
+            499 strings with 3999 characters,
+and the built_in function-call counts, 214 in all, are:
+= -- 15
+> -- 7
+< -- 0
++ -- 3
+- -- 2
+* -- 16
+:= -- 43
+add.period$ -- 1
+call.type$ -- 1
+change.case$ -- 3
+chr.to.int$ -- 0
+cite$ -- 4
+duplicate$ -- 10
+empty$ -- 18
+format.name$ -- 2
+if$ -- 37
+int.to.chr$ -- 0
+int.to.str$ -- 1
+missing$ -- 1
+newline$ -- 6
+num.names$ -- 2
+pop$ -- 10
+preamble$ -- 1
+purify$ -- 3
+quote$ -- 0
+skip$ -- 5
+stack$ -- 0
+substring$ -- 5
+swap$ -- 0
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 4
+warning$ -- 3
+while$ -- 2
+width$ -- 2
+write$ -- 7
+(There was 1 error message)

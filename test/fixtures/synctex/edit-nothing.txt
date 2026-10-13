@@ -1,0 +1,9 @@
+This is SyncTeX command line utility, version 1.5
+SyncTeX result begin
+Output:/tmp/claude-0/sx/.texpane/build/main.pdf
+Input:/tmp/claude-0/sx/./main.tex
+Line:6
+Column:-1
+Offset:0
+Context:
+SyncTeX result end

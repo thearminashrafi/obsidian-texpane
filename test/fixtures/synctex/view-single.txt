@@ -1,0 +1,15 @@
+This is SyncTeX command line utility, version 1.5
+SyncTeX result begin
+Output:/tmp/claude-0/sx/.texpane/build/main.pdf
+Page:1
+x:171.128296
+y:134.764618
+h:133.768356
+v:136.701797
+W:343.711060
+H:8.855677
+before:
+offset:-1
+middle:
+after:
+SyncTeX result end
