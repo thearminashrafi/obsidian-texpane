@@ -1,4 +1,4 @@
-import { autocompletion, snippet, snippetCompletion, type Completion, type CompletionContext, type CompletionResult, type CompletionSource } from "@codemirror/autocomplete";
+import { autocompletion, pickedCompletion, snippet, snippetCompletion, startCompletion, type Completion, type CompletionContext, type CompletionResult, type CompletionSource } from "@codemirror/autocomplete";
 import type { EditorView } from "@codemirror/view";
 import type { BibEntry, LabelEntry } from "../types";
 import data from "./data/commands.json";
@@ -28,10 +28,29 @@ export interface CompletionHost {
 
 const items = data as DataItem[];
 
+/**
+ * \begin and \end: put the cursor inside the braces and open the environment list
+ * (the \begin{ / \end{ source below), instead of inserting a "{environment}" placeholder to type over.
+ * An existing "{" right after the cursor is reused rather than doubled.
+ */
+export function braceThenList(macro: "\\begin" | "\\end", trigger: (v: EditorView) => void = startCompletion) {
+  return (view: EditorView, c: Completion, from: number, to: number) => {
+    const hasBrace = view.state.doc.sliceString(to, to + 1) === "{";
+    const insert = hasBrace ? macro : `${macro}{}`;
+    view.dispatch({
+      changes: { from, to, insert },
+      selection: { anchor: from + macro.length + 1 },
+      annotations: pickedCompletion.of(c),
+    });
+    setTimeout(() => trigger(view), 0);
+  };
+}
+
 const commandOptions: Completion[] = items
   .filter((i) => i.type === "command")
-  .map((i) => {
+  .map((i): Completion => {
     const detail = i.detail ?? i.package;
+    if (i.label === "\\begin" || i.label === "\\end") return { label: i.label, type: "keyword", detail: "environment…", apply: braceThenList(i.label) };
     return i.snippet ? snippetCompletion(i.snippet, { label: i.label, type: "keyword", detail }) : { label: i.label, type: "keyword", detail };
   });
 
