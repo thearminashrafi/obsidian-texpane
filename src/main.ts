@@ -22,6 +22,7 @@ export default class TexPanePlugin extends Plugin {
   private statusEl: HTMLElement | null = null;
   private lastLatexView: LatexWorkspaceView | null = null;
   private focusPrev: { left: boolean; right: boolean } | null = null;
+  private toolchainPromise: Promise<ToolchainInfo> | null = null;
 
   async onload() {
     await this.loadSettings();
@@ -52,7 +53,7 @@ export default class TexPanePlugin extends Plugin {
     this.registerEvent(this.app.workspace.on("layout-change", () => this.updateStatusBar()));
 
     this.app.workspace.onLayoutReady(() => {
-      void this.detectToolchain().then(() => {
+      void this.ensureToolchain().then(() => {
         if (!this.toolchain?.found) new Notice("TeXPane: LaTeX (latexmk) was not found. See Settings → TeXPane.", 8000);
       });
     });
@@ -85,10 +86,19 @@ export default class TexPanePlugin extends Plugin {
     for (const v of this.latexViews()) v.applyStyleSettings();
   }
 
-  async detectToolchain() {
-    this.toolchain = await detectToolchain({ settingsDir: this.settings.texBinDir || null });
-    this.updateStatusBar();
-    return this.toolchain;
+  detectToolchain(): Promise<ToolchainInfo> {
+    const p = detectToolchain({ settingsDir: this.settings.texBinDir || null }).then((t) => {
+      this.toolchain = t;
+      this.updateStatusBar();
+      return t;
+    });
+    this.toolchainPromise = p;
+    return p;
+  }
+  /** Detected toolchain; waits for (or starts) the first detection. Views restored at startup can build before onLayoutReady. */
+  ensureToolchain(): Promise<ToolchainInfo> {
+    if (this.toolchain) return Promise.resolve(this.toolchain);
+    return this.toolchainPromise ?? this.detectToolchain();
   }
 
   // ------------------------------------------------------------------ views + sessions

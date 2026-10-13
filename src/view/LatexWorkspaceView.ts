@@ -118,8 +118,7 @@ export class LatexWorkspaceView extends TextFileView {
 
   async onClose() {
     if (this.ratioSaveTimer) window.clearTimeout(this.ratioSaveTimer);
-    this.unlisten?.();
-    this.unlisten = null;
+    this.unbindSession();
     this.resizeObs?.disconnect();
     this.pdf?.dispose();
     this.pdf = null;
@@ -162,9 +161,9 @@ export class LatexWorkspaceView extends TextFileView {
   }
 
   async onUnloadFile(file: TFile) {
-    this.unlisten?.();
-    this.unlisten = null;
+    // super saves pending edits first; unbind afterwards so the session still sees this view while saving
     await super.onUnloadFile(file);
+    this.unbindSession();
   }
 
   async onRename(file: TFile) {
@@ -440,19 +439,23 @@ export class LatexWorkspaceView extends TextFileView {
   // ---------------------------------------------------------------- session binding
   private async bindSession() {
     const token = ++this.bindToken;
-    this.unlisten?.();
-    this.unlisten = null;
+    this.unbindSession();
     if (!this.file) return;
     const info = await this.resolveProjectInfo();
-    if (token !== this.bindToken) return;
+    if (token !== this.bindToken || !this.file) return;
     const session = this.plugin.sessionFor(info);
-    session.resolver = () => this.resolveProjectInfo();
+    const resolver = () => this.resolveProjectInfo();
+    session.resolver = resolver;
     this.session = session;
     this.currentRoot = info.rootAbsPath;
     this.applyRatio();
     const listener = (e: SessionEvent) => this.onSessionEvent(e);
     session.listeners.add(listener);
-    this.unlisten = () => session.listeners.delete(listener);
+    this.unlisten = () => {
+      session.listeners.delete(listener);
+      // a closed view (or one showing another file) must not resolve this project any more
+      if (session.resolver === resolver) session.resolver = null;
+    };
     this.pdfLoadedFor = "";
     if (session.last) this.onResult(session.last, false);
     else await this.showExistingPdf(info);
@@ -461,6 +464,11 @@ export class LatexWorkspaceView extends TextFileView {
       if (this.plugin.settings.autoCompile && !session.last) void session.compileNow().catch(() => undefined);
     }
     this.plugin.updateStatusBar();
+  }
+
+  private unbindSession() {
+    this.unlisten?.();
+    this.unlisten = null;
   }
 
   private async resolveProjectInfo(): Promise<ProjectInfo> {

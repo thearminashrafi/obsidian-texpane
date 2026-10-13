@@ -77,9 +77,10 @@ export class ProjectSession {
   private async run(force: boolean, signal: AbortSignal): Promise<BuildResult> {
     const s = this.plugin.settings;
     await this.plugin.saveDirtyViews();
-    const project = this.resolver ? await this.resolver() : this.project;
-    this.project = project;
-    const tc = this.plugin.toolchain;
+    const resolved = this.resolver ? await this.resolver().catch(() => null) : null;
+    if (resolved) this.project = resolved;
+    const project = this.project;
+    const tc = this.plugin.toolchain ?? (await this.plugin.ensureToolchain().catch(() => null));
     const req: BuildRequest = {
       project,
       shellEscape: s.shellEscape,
