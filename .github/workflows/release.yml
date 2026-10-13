@@ -1,0 +1,33 @@
+name: Release
+
+# Push a tag equal to the version in manifest.json (e.g. 0.1.0) to build the plugin
+# and publish a GitHub release with main.js, manifest.json and styles.css attached.
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Check tag matches manifest version
+        run: |
+          v=$(node -p "require('./manifest.json').version")
+          [ "$v" = "${GITHUB_REF_NAME}" ] || { echo "Tag ${GITHUB_REF_NAME} does not match manifest version $v"; exit 1; }
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" release/main.js release/manifest.json release/styles.css \
+            --title "TeXPane ${GITHUB_REF_NAME}" --notes-file .github/release-notes.md
