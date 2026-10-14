@@ -1,3 +1,3 @@
-TeXPane 0.2.1
+TeXPane 0.2.2
 
-- LaTeX projects panel: right-click a project, file or folder to delete it (confirmation first; goes to the trash according to your Obsidian "Deleted files" setting).
+- Fix: syntax colours were missing in the LaTeX and BibTeX editors (commands, environments, math, comments, headings). They are now applied directly as colour marks, with a fallback to your theme colours.

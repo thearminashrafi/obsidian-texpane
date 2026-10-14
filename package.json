@@ -1,6 +1,6 @@
 {
   "name": "texpane",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Overleaf-style LaTeX workspace inside Obsidian",
   "main": "main.js",
   "private": true,
@@ -29,6 +29,7 @@
     "@types/node": "^20.19.43",
     "builtin-modules": "^5.4.0",
     "esbuild": "^0.21.5",
+    "jsdom": "^29.1.1",
     "mdast-util-from-markdown": "^2.1.0",
     "mdast-util-gfm": "^3.1.0",
     "mdast-util-gfm-table": "^2.0.0",

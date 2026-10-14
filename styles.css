@@ -33,13 +33,13 @@
   --tp-syn-heading: var(--text-normal);
 }
 
-.tp-tok-command { color: var(--tp-syn-command); }
-.tp-tok-env { color: var(--tp-syn-env); font-weight: var(--font-semibold); }
-.tp-tok-math { color: var(--tp-syn-math); }
-.tp-tok-arg { color: var(--tp-syn-arg); }
-.tp-tok-ref { color: var(--tp-syn-ref); }
-.tp-tok-comment { color: var(--tp-syn-comment); font-style: italic; }
-.tp-tok-heading { color: var(--tp-syn-heading); font-weight: var(--font-bold); }
+.tp-tok-command { color: var(--tp-syn-command, var(--code-function)); }
+.tp-tok-env { color: var(--tp-syn-env, var(--code-keyword)); font-weight: var(--font-semibold); }
+.tp-tok-math { color: var(--tp-syn-math, var(--code-value)); }
+.tp-tok-arg { color: var(--tp-syn-arg, var(--code-property)); }
+.tp-tok-ref { color: var(--tp-syn-ref, var(--code-tag)); }
+.tp-tok-comment { color: var(--tp-syn-comment, var(--code-comment)); font-style: italic; }
+.tp-tok-heading { color: var(--tp-syn-heading, var(--text-normal)); font-weight: var(--font-bold); }
 
 /* ------------------------------------------------------------------ layout */
 .texpane-view.view-content {

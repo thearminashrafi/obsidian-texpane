@@ -1,5 +1,6 @@
 import { StreamLanguage, HighlightStyle, syntaxHighlighting, type StreamParser } from "@codemirror/language";
 import { Tag } from "@lezer/highlight";
+import { streamHighlight } from "./streamHighlight";
 import { stex } from "@codemirror/legacy-modes/mode/stex";
 
 /** Custom highlight tags bound to the Parchment & Ink tokens (--tp-syn-*) in styles.css */
@@ -28,7 +29,7 @@ interface TState {
   envCmd: string | null;
 }
 
-const parser: StreamParser<TState> = {
+export const parser: StreamParser<TState> = {
   name: "texpane-latex",
   startState(): TState {
     return { inner: stex.startState!(0), math: false, envMath: 0, stack: [], lastCmd: null, envName: "", envCmd: null };
@@ -137,7 +138,7 @@ export const texpaneHighlight = HighlightStyle.define([
 ]);
 
 export function latexSyntax() {
-  return [latexLanguage, syntaxHighlighting(texpaneHighlight)];
+  return [latexLanguage, streamHighlight(parser, "tp", "tp-tok")];
 }
 
 /** BibTeX is highlighted with a tiny dedicated parser (entries, keys, fields, comments). */
@@ -166,5 +167,5 @@ const bibParser: StreamParser<{ depth: number }> = {
 };
 export const bibLanguage = StreamLanguage.define(bibParser);
 export function bibSyntax() {
-  return [bibLanguage, syntaxHighlighting(texpaneHighlight)];
+  return [bibLanguage, streamHighlight(bibParser, "tp", "tp-tok")];
 }
