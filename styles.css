@@ -334,7 +334,7 @@ body.texpane-focus .workspace-ribbon.mod-right { display: none; }
 .tp-projects-section-icon svg { width: 13px; height: 13px; }
 .tp-projects .tp-row { display: flex; align-items: center; gap: 6px; padding-top: 3px; padding-bottom: 3px; border-radius: var(--radius-s); }
 .tp-projects .tp-row .tree-item-inner { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tp-projects .tree-item-children { padding-left: 14px; margin-left: 9px; border-left: 1px solid var(--background-modifier-border); }
+.tp-projects .tree-item-children { padding-left: 7px; margin-left: 4px; border-left: 1px solid var(--background-modifier-border); }
 .tp-projects .tp-chevron-space { width: 16px; flex: 0 0 auto; }
 .tp-projects .collapse-icon { flex: 0 0 auto; }
 .tp-projects .tp-row-icon { position: relative; display: inline-flex; flex: 0 0 auto; color: var(--text-faint); }

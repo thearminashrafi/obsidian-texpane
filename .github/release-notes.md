@@ -1,3 +1,3 @@
-TeXPane 0.2.2
+TeXPane 0.2.3
 
-- Fix: syntax colours were missing in the LaTeX and BibTeX editors (commands, environments, math, comments, headings). They are now applied directly as colour marks, with a fallback to your theme colours.
+- Smaller indentation in the LaTeX projects panel tree.
