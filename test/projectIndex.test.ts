@@ -141,8 +141,8 @@ describe("buildProjectIndex: nested projects", () => {
   });
 });
 
-describe("buildProjectIndex: vault root", () => {
-  it("root project only owns files directly in the vault root", () => {
+describe("buildProjectIndex: vault root and standalone folders", () => {
+  it("each main file in the vault root is its own single-file project", () => {
     const projects = buildProjectIndex(
       [tex("main.tex"), tex("book/main.tex")],
       ["main.tex", "logo.png", "pics/logo.png", "book/fig.pdf"],
@@ -158,14 +158,27 @@ describe("buildProjectIndex: vault root", () => {
         root: "",
         main: "main.tex",
         name: "main",
-        files: ["main.tex", "logo.png"],
+        files: ["main.tex"],
       },
     ]);
   });
 
   it("names a root project after its main file's basename", () => {
     const [p] = buildProjectIndex([tex("paper.tex")], ["paper.tex", "refs.bib"]);
-    expect(p).toEqual({ root: "", main: "paper.tex", name: "paper", files: ["paper.tex", "refs.bib"] });
+    expect(p).toEqual({ root: "", main: "paper.tex", name: "paper", files: ["paper.tex"] });
+  });
+
+  it("treats every main in a standalone folder as its own project, keeping subfolder projects", () => {
+    const projects = buildProjectIndex(
+      [tex("LaTeX/notes.tex"), tex("LaTeX/hw1.tex"), tex("LaTeX/Paper/main.tex")],
+      ["LaTeX/notes.tex", "LaTeX/hw1.tex", "LaTeX/Paper/main.tex", "LaTeX/Paper/refs.bib", "LaTeX/x.png"],
+      { standalone: ["LaTeX/"] },
+    );
+    expect(projects.map((p) => [p.name, p.root, p.files])).toEqual([
+      ["hw1", "LaTeX", ["LaTeX/hw1.tex"]],
+      ["notes", "LaTeX", ["LaTeX/notes.tex"]],
+      ["Paper", "LaTeX/Paper", ["LaTeX/Paper/main.tex", "LaTeX/Paper/refs.bib"]],
+    ]);
   });
 });
 

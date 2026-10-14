@@ -244,11 +244,12 @@ export class TexPaneSettingTab extends PluginSettingTab {
         t.setPlaceholder("LaTeX").setValue(s.projectsFolder).onChange(async (v) => {
           s.projectsFolder = v.trim().replace(/^\/+|\/+$/g, "");
           await save();
+          this.plugin.scheduleProjectRebuild();
         }),
       );
     new Setting(containerEl)
       .setName("Mark projects in the file explorer")
-      .setDesc("Show a small sigma and an accent tint on folders that hold a LaTeX project.")
+      .setDesc("Show a small sigma and an accent tint on the projects folder and on folders that hold a LaTeX project.")
       .addToggle((t) =>
         t.setValue(s.markProjectsInExplorer).onChange(async (v) => {
           s.markProjectsInExplorer = v;
@@ -258,7 +259,7 @@ export class TexPaneSettingTab extends PluginSettingTab {
       );
     new Setting(containerEl)
       .setName("Hide projects from the file explorer")
-      .setDesc("Keep LaTeX project folders out of the file explorer. Open them from the LaTeX projects panel instead.")
+      .setDesc("Keep the projects folder and LaTeX project folders out of the file explorer. Open them from the LaTeX projects panel instead.")
       .addToggle((t) =>
         t.setValue(s.hideProjectsInExplorer).onChange(async (v) => {
           s.hideProjectsInExplorer = v;

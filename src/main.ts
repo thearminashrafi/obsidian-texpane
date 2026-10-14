@@ -341,6 +341,10 @@ export default class TexPanePlugin extends Plugin {
   projects(): LatexProject[] {
     return this.projectList;
   }
+  /** Number of .tex files looked at by the last index rebuild (shown in the panel footer). */
+  scannedTexCount(): number {
+    return this.texCache.size;
+  }
 
   /** Subscribe to index, status and setting changes. Returns the unsubscribe function. */
   onProjectsChanged(cb: () => void): () => void {
@@ -406,7 +410,7 @@ export default class TexPanePlugin extends Plugin {
       }),
     );
     if (run !== this.indexRun) return; // a newer rebuild superseded this one
-    this.projectList = buildProjectIndex(texFiles, files.map((f) => f.path));
+    this.projectList = buildProjectIndex(texFiles, files.map((f) => f.path), { standalone: [this.homePath()] });
     this.applyExplorerCss();
     this.notifyProjects();
   }
@@ -440,7 +444,7 @@ export default class TexPanePlugin extends Plugin {
   // ------------------------------------------------------------------ explorer markers
   private applyExplorerCss() {
     const { markProjectsInExplorer: mark, hideProjectsInExplorer: hide } = this.settings;
-    const css = explorerCss(this.projectList.map((p) => p.root), { mark, hide });
+    const css = explorerCss([this.homePath(), ...this.projectList.map((p) => p.root)], { mark, hide });
     let el = document.getElementById(EXPLORER_STYLE_ID);
     if (!css) {
       el?.remove();
@@ -470,11 +474,16 @@ export default class TexPanePlugin extends Plugin {
   }
 
   // ------------------------------------------------------------------ new files / projects
-  /** Create the projects folder (and parents) when missing; "" means the vault root. */
-  private async ensureProjectsFolder(): Promise<TFolder> {
+  /** Vault path of the projects home folder ("" = vault root). */
+  homePath(): string {
+    const d = normalizePath(this.settings.projectsFolder.trim() || "/");
+    return d === "/" ? "" : d;
+  }
+
+  /** Create a folder (and parents) when missing. "" is the vault root. */
+  async ensureFolder(dir: string): Promise<TFolder> {
     const vault = this.app.vault;
-    const dir = normalizePath(this.settings.projectsFolder.trim() || "/");
-    if (dir === "/" || dir === "") return vault.getRoot();
+    if (dir === "" || dir === "/") return vault.getRoot();
     let cur = "";
     for (const seg of dir.split("/").filter(Boolean)) {
       cur = cur ? `${cur}/${seg}` : seg;
@@ -485,11 +494,66 @@ export default class TexPanePlugin extends Plugin {
     return f;
   }
 
+  /** The projects folder, created when missing. */
+  async homeFolder(): Promise<TFolder> {
+    return this.ensureFolder(this.homePath());
+  }
+
   async newProjectInHome() {
     try {
-      this.newLatexProject(await this.ensureProjectsFolder());
+      this.newLatexProject(await this.homeFolder());
     } catch (e) {
       new Notice(`TeXPane: ${(e as Error).message}`);
+    }
+  }
+
+  /** Ask for a name and create a standalone .tex file (from the article template) in the folder. */
+  newNamedTexFile(folder: TFolder) {
+    new PromptModal(this.app, "New LaTeX file", "File name", "Untitled", "Create", async (v) => {
+      const name = v.replace(/\.tex$/i, "").replace(/[\\/:*?"<>|]/g, "-").trim() || "Untitled";
+      const p = this.uniquePath(folder, name, "tex");
+      const f = await this.app.vault.create(p, ARTICLE_TEMPLATE);
+      await this.openFromPanel(f, true);
+    }).open();
+  }
+
+  /** Ask for a name and create a folder inside the given one. */
+  newFolderIn(folder: TFolder) {
+    new PromptModal(this.app, "New folder", "Folder name", "", "Create", async (v) => {
+      const name = v.replace(/[\\/:*?"<>|]/g, "-").trim();
+      if (!name) return;
+      const p = normalizePath((folder.isRoot() ? "" : folder.path + "/") + name);
+      if (this.app.vault.getAbstractFileByPath(p)) {
+        new Notice(`TeXPane: "${p}" already exists`);
+        return;
+      }
+      await this.app.vault.createFolder(p);
+    }).open();
+  }
+
+  /** True when the project already lives inside the projects folder. */
+  isInHome(project: LatexProject): boolean {
+    const home = this.homePath();
+    if (home === "") return true;
+    return project.root === home || project.root.startsWith(home + "/");
+  }
+
+  /** Move a project's folder (or a standalone file) into the projects folder; Obsidian updates links. */
+  async moveToHome(project: LatexProject) {
+    try {
+      const home = await this.homeFolder();
+      const standalone = project.root === "" || project.root === this.homePath();
+      const src = this.app.vault.getAbstractFileByPath(standalone ? project.main : project.root);
+      if (!src) return;
+      const dest = normalizePath((home.isRoot() ? "" : home.path + "/") + src.name);
+      if (this.app.vault.getAbstractFileByPath(dest)) {
+        new Notice(`TeXPane: "${dest}" already exists`);
+        return;
+      }
+      await this.app.fileManager.renameFile(src, dest);
+      new Notice(`TeXPane: moved to ${dest}`);
+    } catch (e) {
+      new Notice(`TeXPane: could not move: ${(e as Error).message}`);
     }
   }
 

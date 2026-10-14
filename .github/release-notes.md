@@ -1,5 +1,6 @@
-TeXPane 0.1.5: LaTeX projects, kept apart from your notes
+TeXPane 0.1.6
 
-- **Projects panel** (sigma icon in the ribbon, or the command "Open LaTeX projects"): every LaTeX project in the vault with build status, last build time and its files. Click to open, right-click for Open PDF, Recompile, Reveal in file explorer, New file in project. Filter box at the top.
-- **Projects folder**: new projects go into `LaTeX/` by default (Settings → Projects).
-- **File explorer**: project folders get a small Σ marker. Optional: hide project folders from the explorer, and open projects in their own LaTeX window.
+- The LaTeX projects panel now shows your projects folder (`LaTeX/` by default) as a tree: sub-folders, single .tex documents and multi-file projects, with a status dot on each document.
+- A clear **New** button (project, LaTeX file, folder); right-click a folder for the same actions in that folder.
+- Projects outside the projects folder are listed under "Elsewhere in the vault"; right-click one and choose "Move into LaTeX/" (links are updated).
+- Footer shows how many projects and .tex files were found, and the panel rescans when it opens.

@@ -87,7 +87,7 @@ function isTexPath(path: string): boolean {
 export function buildProjectIndex(
   texFiles: { path: string; content: string }[],
   allFiles: string[],
-  opts: { ignore?: string[] } = {},
+  opts: { ignore?: string[]; standalone?: string[] } = {},
 ): LatexProject[] {
   const prefixes = [
     ...DEFAULT_IGNORE,
@@ -127,7 +127,15 @@ export function buildProjectIndex(
     filesByRoot.get(root)!.add(path);
   }
 
-  const projects: LatexProject[] = roots.map((root) => {
+  // Standalone folders (the vault root and e.g. the projects home folder): every main file there is its own
+  // single-file project, named after the file, instead of the whole folder being one project.
+  const standalone = new Set(["", ...(opts.standalone ?? []).map((r) => r.trim().replace(/^\/+|\/+$/g, ""))]);
+  const projects: LatexProject[] = [];
+  for (const root of roots) {
+    if (standalone.has(root)) {
+      for (const main of mainsByRoot.get(root)!) projects.push({ root, main, name: baseOf(main).replace(/\.tex$/i, ""), files: [main] });
+      continue;
+    }
     const main = mainOf.get(root)!;
     const set = filesByRoot.get(root)!;
     set.add(main); // main is always included
@@ -136,12 +144,8 @@ export function buildProjectIndex(
       const tb = isTexPath(b) ? 0 : 1;
       return ta - tb || byPath(a, b);
     });
-    const name =
-      root === ""
-        ? baseOf(main).replace(/\.tex$/i, "")
-        : root.slice(root.lastIndexOf("/") + 1);
-    return { root, main, name, files };
-  });
+    projects.push({ root, main, name: root.slice(root.lastIndexOf("/") + 1), files });
+  }
 
   projects.sort((a, b) => {
     const byName = a.name.toLowerCase().localeCompare(b.name.toLowerCase());
