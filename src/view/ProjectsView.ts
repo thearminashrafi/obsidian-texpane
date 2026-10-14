@@ -34,6 +34,7 @@ export class ProjectsView extends ItemView {
 
   constructor(leaf: WorkspaceLeaf, private plugin: TexPanePlugin) {
     super(leaf);
+    plugin.debug("ProjectsView constructed");
   }
   getViewType() {
     return PROJECTS_TYPE;
@@ -61,9 +62,14 @@ export class ProjectsView extends ItemView {
   }
 
   async onOpen() {
+    this.plugin.debug("ProjectsView onOpen start");
     try {
       this.build();
+      const c = this.contentEl;
+      const r = c.getBoundingClientRect();
+      this.plugin.debug(`onOpen done: children=${c.childElementCount} connected=${c.isConnected} size=${Math.round(r.width)}x${Math.round(r.height)} display=${getComputedStyle(c).display} html=${c.outerHTML.slice(0, 300).replace(/\n/g, " ")}`);
     } catch (e) {
+      this.plugin.debug(`onOpen error: ${(e as Error).stack}`);
       console.error("[TeXPane] projects panel failed to open", e);
       this.contentEl.empty();
       this.contentEl.createDiv({ cls: "tp-projects-note", text: `The LaTeX projects panel failed to load: ${(e as Error).message}` });
@@ -169,6 +175,16 @@ export class ProjectsView extends ItemView {
   // ------------------------------------------------------------------ rendering
   render() {
     if (!this.listEl) return;
+    try {
+      this.renderInner();
+    } catch (e) {
+      this.plugin.debug(`render error: ${(e as Error).stack}`);
+      this.listEl.empty();
+      this.listEl.createDiv({ cls: "tp-projects-note", text: `Could not draw the list: ${(e as Error).message}` });
+    }
+  }
+
+  private renderInner() {
     const el = this.listEl;
     const scroll = el.scrollTop;
     el.empty();

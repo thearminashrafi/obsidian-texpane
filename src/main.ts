@@ -39,7 +39,18 @@ export default class TexPanePlugin extends Plugin {
   private lastBuilds = new Map<string, { status: string; at: number }>();
   private windowLeaf: WorkspaceLeaf | null = null;
 
+  /** Temporary diagnostics for the projects panel: appended to debug.log in the plugin folder. */
+  debug(msg: string) {
+    try {
+      const dir = this.manifest.dir ?? ".obsidian/plugins/texpane";
+      void this.app.vault.adapter.append(`${dir}/debug.log`, `${new Date().toISOString()} [${this.app.vault.getName()}] ${msg}\n`);
+    } catch {
+      /* ignore */
+    }
+  }
+
   async onload() {
+    this.debug("onload");
     await this.loadSettings();
     this.notes = new ObsidianNotes(this.app);
 
@@ -344,6 +355,7 @@ export default class TexPanePlugin extends Plugin {
    * outlived a plugin reload. Load it, and if it still is not a live ProjectsView, recreate it in place.
    */
   private async reviveProjectsLeaf(leaf: WorkspaceLeaf) {
+    this.debug(`revive: view=${leaf.view?.constructor?.name} type=${leaf.view?.getViewType?.()} live=${leaf.view instanceof ProjectsView ? leaf.view.isLive() : "n/a"}`);
     const l = leaf as WorkspaceLeaf & { loadIfDeferred?: () => Promise<void> };
     try {
       await l.loadIfDeferred?.();
@@ -429,6 +441,7 @@ export default class TexPanePlugin extends Plugin {
       }),
     );
     if (run !== this.indexRun) return; // a newer rebuild superseded this one
+    this.debug(`index: ${tex.length} tex files`);
     this.projectList = buildProjectIndex(texFiles, files.map((f) => f.path), { standalone: [this.homePath()] });
     this.applyExplorerCss();
     this.notifyProjects();
