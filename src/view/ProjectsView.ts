@@ -1,4 +1,4 @@
-import { ItemView, Keymap, Menu, Notice, TFile, TFolder, WorkspaceLeaf, setIcon } from "obsidian";
+import { App, ItemView, Keymap, Menu, Modal, Notice, TAbstractFile, TFile, TFolder, WorkspaceLeaf, setIcon } from "obsidian";
 import type TexPanePlugin from "../main";
 import type { LatexProject } from "../core/projectIndex";
 import { formatRelativeTime } from "../core/projectStatus";
@@ -348,6 +348,15 @@ export class ProjectsView extends ItemView {
       if (folder instanceof TFolder) m.addItem((i) => i.setTitle("New file in project").setIcon("file-plus").onClick(() => this.plugin.newNamedTexFile(folder)));
     }
     m.addItem((i) => i.setTitle("Reveal in file explorer").setIcon("folder-search").onClick(() => this.reveal(this.isFolderProject(p, this.plugin.projects()) ? p.root : p.main)));
+    m.addSeparator();
+    const folderProject = this.isFolderProject(p, this.plugin.projects());
+    m.addItem((i) =>
+      i
+        .setTitle(folderProject ? "Delete project…" : "Delete file…")
+        .setIcon("trash-2")
+        .setWarning(true)
+        .onClick(() => this.confirmDelete(folderProject ? p.root : p.main, folderProject ? `the project "${p.name}" and all its files` : `"${p.main}"`)),
+    );
     m.showAtMouseEvent(e);
   }
 
@@ -358,6 +367,10 @@ export class ProjectsView extends ItemView {
     m.addItem((i) => i.setTitle("New folder here").setIcon("folder").onClick(() => this.plugin.newFolderIn(folder)));
     m.addSeparator();
     m.addItem((i) => i.setTitle("Reveal in file explorer").setIcon("folder-search").onClick(() => this.reveal(folder.path)));
+    m.addSeparator();
+    m.addItem((i) =>
+      i.setTitle("Delete folder…").setIcon("trash-2").setWarning(true).onClick(() => this.confirmDelete(folder.path, `the folder "${folder.path}" and everything in it`)),
+    );
     m.showAtMouseEvent(e);
   }
 
@@ -366,7 +379,23 @@ export class ProjectsView extends ItemView {
     m.addItem((i) => i.setTitle("Open").setIcon("file").onClick(() => this.openPath(path, null)));
     m.addItem((i) => i.setTitle("Open in new tab").setIcon("file-plus").onClick(() => this.openPath(path, true)));
     m.addItem((i) => i.setTitle("Reveal in file explorer").setIcon("folder-search").onClick(() => this.reveal(path)));
+    m.addSeparator();
+    m.addItem((i) => i.setTitle("Delete file…").setIcon("trash-2").setWarning(true).onClick(() => this.confirmDelete(path, `"${path}"`)));
     m.showAtMouseEvent(e);
+  }
+
+  /** Ask, then move to the trash (the user's Obsidian "Deleted files" setting decides system trash / .trash / permanent). */
+  private confirmDelete(path: string, what: string) {
+    const target: TAbstractFile | null = this.app.vault.getAbstractFileByPath(path);
+    if (!target) return;
+    new ConfirmModal(this.app, "Delete?", `Move ${what} to the trash?`, "Delete", () => {
+      void this.app.fileManager
+        .trashFile(target)
+        .then(() => {
+          new Notice(`TeXPane: deleted ${target.name}`);
+        })
+        .catch((err) => new Notice(`TeXPane: could not delete (${err instanceof Error ? err.message : String(err)})`));
+    }).open();
   }
 
   /** Select a file or folder in the core file explorer (uses its revealInFolder method; undocumented but stable). */
@@ -380,5 +409,33 @@ export class ProjectsView extends ItemView {
     }
     void this.app.workspace.revealLeaf(leaf);
     (leaf.view as unknown as { revealInFolder?: (f: unknown) => void }).revealInFolder?.(target);
+  }
+}
+
+class ConfirmModal extends Modal {
+  constructor(
+    app: App,
+    private heading: string,
+    private body: string,
+    private okLabel: string,
+    private onOk: () => void,
+  ) {
+    super(app);
+  }
+  onOpen() {
+    this.titleEl.setText(this.heading);
+    this.contentEl.createEl("p", { text: this.body });
+    const row = this.contentEl.createDiv({ cls: "modal-button-container" });
+    const ok = row.createEl("button", { text: this.okLabel, cls: "mod-warning" });
+    const cancel = row.createEl("button", { text: "Cancel" });
+    ok.addEventListener("click", () => {
+      this.close();
+      this.onOk();
+    });
+    cancel.addEventListener("click", () => this.close());
+    cancel.focus();
+  }
+  onClose() {
+    this.contentEl.empty();
   }
 }

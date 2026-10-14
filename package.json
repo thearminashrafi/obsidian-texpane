@@ -1,6 +1,6 @@
 {
   "name": "texpane",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Overleaf-style LaTeX workspace inside Obsidian",
   "main": "main.js",
   "private": true,
