@@ -44,7 +44,8 @@ export default class TexPanePlugin extends Plugin {
   /** Lean integration (LeanPane); inert while LeanPane is absent */
   lean!: LeanIntegration;
   /** Cross-plugin API v1, read by LeanPane through app.plugins.plugins["texpane"].api */
-  api!: TeXPaneApiV1;
+  api: TeXPaneApiV1 | undefined;
+  private readyTimer: number | null = null;
 
   async onload() {
     await this.loadSettings();
@@ -81,7 +82,11 @@ export default class TexPanePlugin extends Plugin {
 
     this.app.workspace.onLayoutReady(() => {
       this.lean.start();
-      (this.app.workspace as unknown as { trigger(name: string): void }).trigger(TEXPANE_READY_EVENT);
+      // announce the API once this event has finished, so listeners never run in the middle of our own start-up
+      this.readyTimer = window.setTimeout(() => {
+        this.readyTimer = null;
+        if (this.api) (this.app.workspace as unknown as { trigger(name: string): void }).trigger(TEXPANE_READY_EVENT);
+      }, 0);
       this.registerProjectIndexEvents();
       void this.rebuildProjects();
       void this.ensureToolchain().then(() => {
@@ -91,6 +96,10 @@ export default class TexPanePlugin extends Plugin {
   }
 
   onunload() {
+    if (this.readyTimer) window.clearTimeout(this.readyTimer);
+    this.readyTimer = null;
+    // the API is unavailable before anyone hears about the unload, so a listener that looks it up finds nothing
+    this.api = undefined;
     (this.app.workspace as unknown as { trigger(name: string): void }).trigger(TEXPANE_UNLOAD_EVENT);
     this.lean?.dispose();
     if (this.pruneTimer) window.clearTimeout(this.pruneTimer);
@@ -153,8 +162,12 @@ export default class TexPanePlugin extends Plugin {
   }
 
   // ------------------------------------------------------------------ views + sessions
+  /** Every TeXPane leaf, including tabs from the saved layout that are not loaded yet (deferred). */
+  latexLeaves(): WorkspaceLeaf[] {
+    return this.app.workspace.getLeavesOfType(VIEW_TYPE);
+  }
   latexViews(): LatexWorkspaceView[] {
-    return this.app.workspace.getLeavesOfType(VIEW_TYPE).map((l) => l.view).filter((v): v is LatexWorkspaceView => v instanceof LatexWorkspaceView);
+    return this.latexLeaves().map((l) => l.view).filter((v): v is LatexWorkspaceView => v instanceof LatexWorkspaceView);
   }
   activeLatexView(): LatexWorkspaceView | null {
     const v = this.app.workspace.getActiveViewOfType(LatexWorkspaceView);

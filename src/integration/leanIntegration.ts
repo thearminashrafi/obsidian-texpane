@@ -4,7 +4,7 @@
  * Everything here goes quiet when LeanPane is absent. The pure logic lives in src/core and src/integration/*.ts
  * (leanBridge, blueprintStore, chipInfo), which are unit-tested with a fake LeanPane API.
  */
-import { FuzzySuggestModal, Notice, TFile, type App } from "obsidian";
+import { FuzzySuggestModal, Notice, TFile, type App, type WorkspaceLeaf } from "obsidian";
 import * as path from "node:path";
 import type TexPanePlugin from "../main";
 import type { LatexWorkspaceView } from "../view/LatexWorkspaceView";
@@ -18,6 +18,7 @@ import {
   editsToChanges,
   labelLine,
   statementText,
+  anchorOf,
   type GraphNode,
   type Mismatch,
   type MismatchKind,
@@ -25,6 +26,8 @@ import {
 } from "../core/blueprintModel";
 import { isValidLeanName, leanNameFromLabel, parseLeanMagic, resolveVaultRelative } from "../core/leanProject";
 import { toVaultRel } from "../core/paths";
+import { findLeafForFile, friendlyPath } from "./openLeaf";
+import { SyncGate } from "./syncGate";
 import type { DeclSummary, LeanProjectInfo, TeXPaneApiV1 } from "./api-types";
 import { API_VERSION, getLeanPaneApi } from "./api-types";
 import { collectBlueprintSources } from "../core/blueprintSources";
@@ -49,6 +52,8 @@ interface ViewState {
 const HUGE_LIST = 5000;
 const DECL_TTL_MS = 20000;
 const EDIT_DEBOUNCE_MS = 600;
+/** LeanPane may announce itself a moment before its plugin object exposes `api` */
+const READY_RETRY_MS = 200;
 
 export interface PanelData {
   root: string;
@@ -84,6 +89,12 @@ export class LeanIntegration {
   private updated = new Set<() => void>();
   private apiListeners = new Set<() => void>();
   private declCache = new Map<string, { at: number; items: DeclSummary[]; huge: boolean }>();
+  /** Declaration queries in flight (per project, and per project + prefix), shared by concurrent callers */
+  private declInflight = new Map<string, Promise<unknown>>();
+  private declGen = 0;
+  private readyTimers = new Set<number>();
+  /** Hysteresis for "Sync \\leanok automatically" */
+  readonly syncGate = new SyncGate();
   private editTimer: number | null = null;
   private lastLeanFile = new Map<string, string>();
   private syncing = false;
@@ -103,7 +114,12 @@ export class LeanIntegration {
     if (this.started) return;
     this.started = true;
     this.bridge.onChange((e) => {
-      this.declCache.clear();
+      this.clearDeclCache();
+      if (e === "availability") {
+        this.syncGate.clear();
+        // edits made while LeanPane was away were not tracked
+        if (this.bridge.available()) this.store.invalidate();
+      }
       this.refreshAll(e === "availability");
       this.notifyUpdated();
     });
@@ -119,10 +135,51 @@ export class LeanIntegration {
       }
     });
     const ws = this.app.workspace as unknown as { on(name: string, cb: () => void): ReturnType<App["workspace"]["on"]> };
-    for (const ev of ["leanpane:api-ready", "leanpane:api-unload"]) this.plugin.registerEvent(ws.on(ev, () => this.recheck()));
+    this.plugin.registerEvent(ws.on("leanpane:api-unload", () => this.onApiUnload()));
+    this.plugin.registerEvent(ws.on("leanpane:api-ready", () => this.onApiReady()));
     // enabling or disabling a plugin changes the layout of the settings, ribbon and so on; cheap enough to look again
     this.plugin.registerEvent(this.app.workspace.on("layout-change", () => this.recheck()));
     this.recheck();
+  }
+
+  /** `leanpane:api-unload`: the API is gone from this moment on, even if the plugin object still lists it. Do not look it up again here. */
+  onApiUnload() {
+    for (const t of this.readyTimers) window.clearTimeout(t);
+    this.readyTimers.clear();
+    this.bridge.markGone();
+    this.clearDeclCache();
+    this.syncGate.clear();
+    for (const [v, st] of this.views) {
+      st.info = undefined;
+      st.resolving = null;
+      st.key = "";
+      if (st.timer) window.clearTimeout(st.timer);
+      st.timer = null;
+      v.setLeanDiagnostics([]);
+      v.refreshLean();
+    }
+    this.notifyUpdated();
+  }
+
+  /** `leanpane:api-ready`: look again once the event has finished, and once more shortly after if the API is not visible yet. */
+  onApiReady() {
+    const later = (ms: number, fn: () => void) => {
+      const t = window.setTimeout(() => {
+        this.readyTimers.delete(t);
+        fn();
+      }, ms);
+      this.readyTimers.add(t);
+    };
+    later(0, () => {
+      this.bridge.markReady();
+      if (!this.bridge.available()) later(READY_RETRY_MS, () => this.bridge.markReady());
+    });
+  }
+
+  private clearDeclCache() {
+    this.declGen++;
+    this.declCache.clear();
+    this.declInflight.clear();
   }
 
   /** Re-check every open view now (a setting changed). */
@@ -147,6 +204,8 @@ export class LeanIntegration {
     this.views.clear();
     if (this.editTimer) window.clearTimeout(this.editTimer);
     this.editTimer = null;
+    for (const t of this.readyTimers) window.clearTimeout(t);
+    this.readyTimers.clear();
     this.bridge.dispose();
     this.store.dispose();
     this.updated.clear();
@@ -257,10 +316,13 @@ export class LeanIntegration {
   }
   /** The editor text changed: the blueprint cache is stale soon. */
   viewEdited(_view: LatexWorkspaceView) {
+    if (!this.bridge.available()) return;
     this.texChanged();
   }
   /** A .tex file changed anywhere. */
   texChanged() {
+    // nothing to keep in step without LeanPane: no timer, no recompute (the cache is rebuilt when LeanPane appears)
+    if (!this.bridge.available()) return;
     if (this.editTimer) window.clearTimeout(this.editTimer);
     this.editTimer = window.setTimeout(() => {
       this.editTimer = null;
@@ -341,18 +403,35 @@ export class LeanIntegration {
     const mismatches = detectMismatches(bp.nodes, this.bridge.statusMap(info.root), bp.sources);
     view.setLeanDiagnostics(mismatches.map((m) => this.toDiagnostic(root, m)));
     view.refreshLean();
-    if (this.plugin.settings.syncLeanok && !this.syncing && mismatches.some((m) => m.auto && m.fix)) {
-      this.syncing = true;
-      try {
-        // decide on the text as it is right now, not on the cached parse: an earlier pass may just have edited it
-        const fresh = (await this.currentMismatches(root, true)).filter((m) => m.auto && m.fix);
-        if (fresh.length) {
-          await this.applyEdits(fresh.flatMap((m) => m.fix!.edits));
-          this.store.invalidate();
-        }
-      } finally {
-        this.syncing = false;
-      }
+    if (this.plugin.settings.syncLeanok && !this.syncing) await this.syncLeanok(view, root, mismatches);
+  }
+
+  /**
+   * Apply the safe \leanok fixes by themselves, but only for situations that have been the same for a while: while the
+   * user edits Lean a declaration can flip stated <-> proved, and each flip must not rewrite the .tex.
+   */
+  private async syncLeanok(view: LatexWorkspaceView, root: string, mismatches: readonly Mismatch[]) {
+    const auto = mismatches.filter((m) => m.auto && m.fix);
+    const gate = this.syncGate;
+    const { ready, wait } = gate.review(
+      auto.map((m) => ({ label: m.label, sig: m.kind })),
+      Date.now(),
+    );
+    if (wait !== null) this.scheduleView(view, wait + 20);
+    if (!ready.length || !this.bridge.available()) return;
+    this.syncing = true;
+    try {
+      // decide on the text as it is right now, not on the cached parse: an earlier pass may just have edited it
+      const sig = new Map(ready.map((r) => [r.label, r.sig]));
+      const fresh = (await this.currentMismatches(root, true)).filter((m) => m.auto && m.fix && sig.get(m.label) === m.kind);
+      if (!fresh.length || !this.bridge.available()) return;
+      const applied = await this.applyEdits(fresh.flatMap((m) => m.fix!.edits));
+      const now = Date.now();
+      // an edit that was skipped (its line moved) is not marked: the next round computes it again
+      if (applied > 0) for (const m of fresh) gate.markActed(m.label, now);
+      this.store.invalidate();
+    } finally {
+      this.syncing = false;
     }
   }
 
@@ -376,8 +455,9 @@ export class LeanIntegration {
       new Notice("TeXPane: this \\leanok problem no longer applies.");
       return;
     }
-    await this.applyEdits(m.fix.edits);
+    const applied = await this.applyEdits(m.fix.edits);
     this.store.invalidate();
+    if (!applied) new Notice("TeXPane: the text changed in the meantime, so the fix was not applied. Try it again.");
   }
 
   /** Mismatches for the project; `fresh` re-reads the files instead of using the cached parse. */
@@ -401,14 +481,18 @@ export class LeanIntegration {
       new Notice("TeXPane: \\leanok already matches Lean.");
       return;
     }
-    await this.applyEdits(fixes.flatMap((m) => m.fix!.edits));
+    const applied = await this.applyEdits(fixes.flatMap((m) => m.fix!.edits));
     this.store.invalidate();
-    new Notice(`TeXPane: updated \\leanok in ${fixes.length} place${fixes.length === 1 ? "" : "s"}.`);
+    new Notice(applied ? `TeXPane: updated \\leanok in ${applied} place${applied === 1 ? "" : "s"}.` : "TeXPane: the text changed in the meantime, nothing was updated. Try again.");
   }
 
   // ---------------------------------------------------------------- editing files
-  /** Apply line edits to open editors or, for files that are not open, to the file itself. */
-  async applyEdits(edits: readonly TextEdit[]) {
+  /**
+   * Apply line edits to open editors or, for files that are not open, to the file itself. Edits whose target line no
+   * longer looks like the one they were computed for are skipped. Returns the number of changes actually made.
+   */
+  async applyEdits(edits: readonly TextEdit[]): Promise<number> {
+    let done = 0;
     const byFile = new Map<string, TextEdit[]>();
     for (const e of edits) byFile.set(e.file, [...(byFile.get(e.file) ?? []), e]);
     for (const [file, list] of byFile) {
@@ -417,11 +501,19 @@ export class LeanIntegration {
         const ed = view.getEditor();
         const changes = editsToChanges(ed.state.doc.toString(), list);
         if (changes.length) ed.dispatch({ changes, userEvent: "input.lean" });
+        done += changes.length;
         continue;
       }
       const f = this.app.vault.getAbstractFileByPath(file);
-      if (f instanceof TFile) await this.app.vault.process(f, (t) => applyChanges(t, editsToChanges(t, list)));
+      if (f instanceof TFile) {
+        await this.app.vault.process(f, (t) => {
+          const changes = editsToChanges(t, list);
+          done += changes.length;
+          return applyChanges(t, changes);
+        });
+      }
     }
+    return done;
   }
 
   // ---------------------------------------------------------------- editor hosts
@@ -432,9 +524,13 @@ export class LeanIntegration {
         const info = this.views.get(view)?.info;
         if (!info) return undefined;
         this.bridge.want(info.root, [name]);
-        return this.bridge.statusOf(info.root, name);
+        const st = this.bridge.statusOf(info.root, name);
+        // projects outside the vault report absolute file paths: show them vault-relative when they are inside
+        const file = st?.file ? friendlyPath(st.file, this.plugin.notes.basePath()) : undefined;
+        return st && file !== st.file ? { ...st, file } : st;
       },
-      open: (name, newTab) => void this.openDeclaration(view, name, newTab),
+      // always beside the TeXPane tab: opening in place would replace the LaTeX editor
+      open: (name) => void this.openDeclaration(view, name),
     };
   }
 
@@ -451,18 +547,43 @@ export class LeanIntegration {
   private async declarations(root: string, typed: string): Promise<{ items: DeclSummary[]; complete: boolean }> {
     const api = this.bridge.api();
     if (!api) return { items: [], complete: true };
+    const shown = (items: DeclSummary[]) =>
+      items.map((d) => {
+        const file = friendlyPath(d.file, this.plugin.notes.basePath());
+        return file === d.file ? d : { ...d, file };
+      });
     let c = this.declCache.get(root);
     if (!c || Date.now() - c.at > DECL_TTL_MS) {
-      const items = await api.listDeclarations(root);
-      c = { at: Date.now(), items, huge: items.length >= HUGE_LIST };
-      this.declCache.set(root, c);
+      // one query per project at a time: concurrent callers (every keystroke asks) share the one in flight
+      c = await this.shared(`all\0${root}`, async () => {
+        const gen = this.declGen;
+        const items = await api.listDeclarations(root);
+        const entry = { at: Date.now(), items, huge: items.length >= HUGE_LIST };
+        if (gen === this.declGen) this.declCache.set(root, entry);
+        return entry;
+      });
     }
-    if (!c.huge) return { items: c.items, complete: true };
-    if (typed.length < 2) return { items: c.items.slice(0, 300), complete: false };
-    return { items: await api.listDeclarations(root, typed), complete: false };
+    if (!c.huge) return { items: shown(c.items), complete: true };
+    if (typed.length < 2) return { items: shown(c.items.slice(0, 300)), complete: false };
+    const items = await this.shared(`pre\0${root}\0${typed}`, () => api.listDeclarations(root, typed));
+    return { items: shown(items), complete: false };
   }
 
-  async openDeclaration(view: LatexWorkspaceView, name: string, newTab: boolean) {
+  /** Run `fn` unless the same query is already running; then everyone gets the same promise. Errors are not remembered. */
+  private shared<T>(key: string, fn: () => Promise<T>): Promise<T> {
+    const running = this.declInflight.get(key) as Promise<T> | undefined;
+    if (running) return running;
+    const gen = this.declGen;
+    const p = Promise.resolve()
+      .then(fn)
+      .finally(() => {
+        if (gen === this.declGen && this.declInflight.get(key) === p) this.declInflight.delete(key);
+      });
+    this.declInflight.set(key, p);
+    return p;
+  }
+
+  async openDeclaration(view: LatexWorkspaceView, name: string) {
     const api = this.bridge.api();
     if (!api) {
       new Notice("TeXPane: LeanPane isn't installed, so there is nothing to open the declaration in.");
@@ -473,13 +594,14 @@ export class LeanIntegration {
       new Notice("TeXPane: no Lean project found for this file.");
       return;
     }
-    await this.openDeclarationIn(info.root, name, newTab);
+    await this.openDeclarationIn(info.root, name);
   }
-  async openDeclarationIn(projectRoot: string, name: string, newTab = false) {
+  /** Open a declaration in LeanPane in a new leaf: never in the current one, which holds the LaTeX editor or the panel. */
+  async openDeclarationIn(projectRoot: string, name: string) {
     const api = this.bridge.api();
     if (!api) return;
     try {
-      const ok = await api.openDeclaration(projectRoot, name, { newLeaf: newTab });
+      const ok = await api.openDeclaration(projectRoot, name, { newLeaf: true });
       if (!ok) new Notice(`TeXPane: Lean has no declaration "${name}" yet.`);
     } catch (e) {
       new Notice(`TeXPane: could not open ${name}: ${(e as Error).message}`);
@@ -586,8 +708,9 @@ export class LeanIntegration {
   private async createAndLink(view: LatexWorkspaceView, info: LeanProjectInfo, label: string, name: string, leanFile: string) {
     const api = this.bridge.api();
     if (!api || !view.file) return;
+    const filePath = view.file.path;
     // the text may have changed while the dialogs were open: look the statement up again
-    const sources = [{ file: view.file.path, text: view.getViewData() }];
+    const sources = [{ file: filePath, text: view.getViewData() }];
     const node = parseBlueprint(sources).find((n) => n.label === label);
     if (!node) {
       new Notice(`TeXPane: ${label} is no longer in this file.`);
@@ -596,11 +719,22 @@ export class LeanIntegration {
     try {
       const res = await api.createStub(info.root, { file: leanFile, name, docstring: statementText(sources, node) });
       this.lastLeanFile.set(info.root, leanFile);
-      const lines = sources[0].text.split(/\r?\n/);
-      const at = labelLine(lines, node) ?? node.line;
-      const indent = /^\s*/.exec(lines[at - 1] ?? "")![0];
-      await this.applyEdits([{ file: view.file.path, line: at, op: "insert-after", text: `${indent}\\lean{${name}}` }]);
-      new Notice(`TeXPane: created ${name} in ${res.file}:${res.line}`);
+      const where = `${friendlyPath(res.file, this.plugin.notes.basePath())}:${res.line}`;
+      // createStub took a while and the user may have kept typing: find the \label again in the text as it is now
+      const text = (await this.readVaultText(filePath)) ?? "";
+      const now = [{ file: filePath, text }];
+      const cur = parseBlueprint(now).find((n) => n.label === label);
+      const lines = text.split(/\r?\n/);
+      const at = cur ? labelLine(lines, cur) : null;
+      if (!cur || at === null) {
+        new Notice(`TeXPane: created ${name} in ${where}, but ${label} moved while it was being created. Add \\lean{${name}} to it yourself.`, 8000);
+      } else if (cur.lean.includes(name)) {
+        new Notice(`TeXPane: created ${name} in ${where}`);
+      } else {
+        const indent = /^\s*/.exec(lines[at - 1] ?? "")![0];
+        const done = await this.applyEdits([{ file: filePath, line: at, op: "insert-after", text: `${indent}\\lean{${name}}`, expect: anchorOf(lines[at - 1]) }]);
+        new Notice(done ? `TeXPane: created ${name} in ${where}` : `TeXPane: created ${name} in ${where}, but the text changed again. Add \\lean{${name}} after \\label{${label}} yourself.`, done ? undefined : 8000);
+      }
       void this.bridge.request(info.root, [name], true);
     } catch (e) {
       new Notice(`TeXPane: LeanPane could not create the declaration: ${(e as Error).message}`, 8000);
@@ -648,10 +782,12 @@ export class LeanIntegration {
   private async openLocation(file: string, line: number): Promise<void> {
     const f = this.app.vault.getAbstractFileByPath(file);
     if (!(f instanceof TFile)) throw new Error(`TeXPane: ${file} is not in the vault`);
-    const view = this.plugin.latexViews().find((v) => v.file === f);
-    if (view) {
-      this.app.workspace.setActiveLeaf(view.leaf, { focus: true });
-      view.revealLine(line);
+    // a tab restored from the saved layout may not be loaded yet (deferred): it still counts as open
+    const hit = await findLeafForFile(this.plugin.latexLeaves(), f.path);
+    if (hit) {
+      this.app.workspace.setActiveLeaf(hit.leaf as unknown as WorkspaceLeaf, { focus: true });
+      if (hit.deferred) hit.leaf.setEphemeralState({ line: line - 1 });
+      else (hit.leaf.view as unknown as LatexWorkspaceView).revealLine(line);
       return;
     }
     await this.app.workspace.getLeaf("tab").openFile(f, { eState: { line: line - 1 } });

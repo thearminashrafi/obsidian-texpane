@@ -29,12 +29,24 @@ export class LeanBridge {
   private unsubscribe: (() => void) | null = null;
   private generation = 0;
   private disposed = false;
+  /** LeanPane announced its unload: its API is treated as gone even while `app.plugins.plugins.leanpane.api` is still set */
+  private gone = false;
 
   constructor(private host: BridgeHost) {}
 
   /** The API right now, or null. Never cached by callers. */
   api(): LeanPaneApiV1 | null {
-    return this.disposed ? null : this.host.getApi();
+    return this.disposed || this.gone ? null : this.host.getApi();
+  }
+  /** `leanpane:api-unload`: from now on there is no API, whatever the plugin object still holds. Drops all cached state at once. */
+  markGone(): boolean {
+    this.gone = true;
+    return this.recheck();
+  }
+  /** `leanpane:api-ready`: look the API up again (it may be a new instance). */
+  markReady(): boolean {
+    this.gone = false;
+    return this.recheck();
   }
   available(): boolean {
     return this.api() !== null;

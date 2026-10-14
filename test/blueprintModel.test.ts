@@ -154,7 +154,7 @@ describe("mismatch detection", () => {
     const b = m.find((x) => x.kind === "leanok-not-proved" && x.label === "lem:b")!;
     expect(b).toMatchObject({ file: FILE, line: 9, col: 2, endCol: 9, auto: true });
     expect(b.message).toContain("B");
-    expect(b.fix!.edits).toEqual([{ file: FILE, line: 9, op: "remove-token", token: "\\leanok" }]);
+    expect(b.fix!.edits).toEqual([{ file: FILE, line: 9, op: "remove-token", token: "\\leanok", expect: "\\leanok" }]);
     expect(applyEdits(MISMATCH_TEX, b.fix!.edits).split("\n").slice(7, 10)).toEqual(["\\begin{proof}", "  Easy.", "\\end{proof}"]);
     // lem:d too (inline \leanok)
     const d = m.find((x) => x.label === "lem:d" && x.kind === "leanok-not-proved")!;
@@ -172,7 +172,7 @@ describe("mismatch detection", () => {
     const m = run({ C1: "proved", C2: "proved" }).find((x) => x.kind === "proved-no-leanok" && x.label === "lem:c")!;
     expect(m.line).toBe(16);
     expect(m.message).toContain("C1, C2");
-    expect(m.fix!.edits).toEqual([{ file: FILE, line: 16, op: "insert-after", text: "  \\leanok" }]);
+    expect(m.fix!.edits).toEqual([{ file: FILE, line: 16, op: "insert-after", text: "  \\leanok", expect: "\\begin{proof}" }]);
     expect(applyEdits(MISMATCH_TEX, m.fix!.edits).split("\n").slice(15, 19)).toEqual(["\\begin{proof}", "  \\leanok", "  Hard.", "\\end{proof}"]);
   });
   it("one of several names not proved: the node is not proved", () => {
@@ -182,7 +182,7 @@ describe("mismatch detection", () => {
     expect(run({ C1: "mathlib", C2: "mathlib" }).some((x) => x.label === "lem:c")).toBe(false);
     const a = run({ A: "proved" }).find((x) => x.label === "def:a")!;
     expect(a.kind).toBe("proved-no-leanok");
-    expect(a.fix!.edits).toEqual([{ file: FILE, line: 2, op: "insert-after", text: "  \\leanok" }]);
+    expect(a.fix!.edits).toEqual([{ file: FILE, line: 2, op: "insert-after", text: "  \\leanok", expect: "\\label{def:a}" }]);
     expect(applyEdits(MISMATCH_TEX, a.fix!.edits).split("\n").slice(0, 4)).toEqual(["\\begin{definition}", "  \\label{def:a}", "  \\leanok", "  \\lean{A}"]);
   });
   it("a theorem without proof environment makes no claim", () => {
@@ -219,6 +219,19 @@ describe("edits", () => {
     ]);
     expect(out).toBe("p\nq\n\\leanok\nr");
     expect(editsToChanges(t, [{ file: "f", line: 99, op: "insert-after", text: "no" }])).toEqual([]);
+  });
+});
+
+describe("edits: the target line is verified", () => {
+  const t = "a\n\\label{x}\n  \\leanok\nb";
+  it("applies when the line still carries the expected anchor", () => {
+    expect(applyEdits(t, [{ file: "f", line: 2, op: "insert-after", text: "Y", expect: "\\label{x}" }])).toBe("a\n\\label{x}\nY\n  \\leanok\nb");
+    expect(applyEdits(t, [{ file: "f", line: 3, op: "remove-token", token: "\\leanok", expect: "\\leanok" }])).toBe("a\n\\label{x}\nb");
+  });
+  it("skips an edit whose line moved or changed (a trailing comment does not matter)", () => {
+    expect(applyEdits("new\n" + t, [{ file: "f", line: 2, op: "insert-after", text: "Y", expect: "\\label{x}" }])).toBe("new\n" + t);
+    expect(applyEdits("new\n" + t, [{ file: "f", line: 3, op: "remove-token", token: "\\leanok", expect: "\\leanok" }])).toBe("new\n" + t);
+    expect(applyEdits(t.replace("\\label{x}", "\\label{x} % c"), [{ file: "f", line: 2, op: "insert-after", text: "Y", expect: "\\label{x}" }])).toContain("Y");
   });
 });
 

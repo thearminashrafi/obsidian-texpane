@@ -132,8 +132,16 @@ export function progress(g: readonly GraphNode[]): Progress {
 
 /** One edit, addressed by file and 1-based line (so it can be applied to an open editor or to the file on disk). */
 export type TextEdit =
-  | { file: string; line: number; op: "insert-after"; text: string }
-  | { file: string; line: number; op: "remove-token"; token: string };
+  | { file: string; line: number; op: "insert-after"; text: string; expect?: string }
+  | { file: string; line: number; op: "remove-token"; token: string; expect?: string };
+
+/** Anchor for an edit: the code part (comment stripped, trimmed) of the line it was computed for. */
+export const anchorOf = (line: string | undefined): string => stripComment(line ?? "").trim();
+
+/** Does the line still look like the one the edit was computed for? Edits without `expect` are not checked. */
+function lineMatches(e: TextEdit, lineText: string): boolean {
+  return e.expect === undefined || anchorOf(lineText) === e.expect;
+}
 
 export interface ChangeSpec {
   from: number;
@@ -150,6 +158,8 @@ export function editsToChanges(text: string, edits: readonly TextEdit[]): Change
     if (e.line < 1 || e.line > idx.lineCount) continue;
     const start = idx.lineStart(e.line);
     const end = idx.lineEnd(e.line);
+    // the text moved or was edited since the edit was computed: skip it, the next round computes it again
+    if (!lineMatches(e, text.slice(start, end))) continue;
     if (e.op === "insert-after") {
       out.push({ from: end, to: end, insert: eol + e.text });
       continue;
@@ -288,7 +298,7 @@ export function detectMismatches(nodes: readonly BlueprintNode[], statuses: Stat
         endCol: site ? p.col + (site.to - site.from) : p.col,
         name: names,
         message: `\\leanok, but Lean says ${names} is not proved yet (${STATUS_LABEL[st].toLowerCase()})`,
-        fix: site ? { label: "Remove \\leanok", edits: [{ file: n.file, line: p.line, op: "remove-token", token: "\\leanok" }] } : undefined,
+        fix: site ? { label: "Remove \\leanok", edits: [{ file: n.file, line: p.line, op: "remove-token", token: "\\leanok", expect: anchorOf(linesOf(n.file)[p.line - 1]) }] } : undefined,
         auto: st === "stated" || st === "sorry-deps",
       });
     } else if (!claim && st === "proved") {
@@ -304,7 +314,7 @@ export function detectMismatches(nodes: readonly BlueprintNode[], statuses: Stat
         endCol: 0,
         name: n.lean.join(", "),
         message: `Lean proves ${n.lean.join(", ")}, but the ${noun} has no \\leanok`,
-        fix: { label: "Add \\leanok", edits: [{ file: n.file, line: anchor, op: "insert-after", text: `${indent}\\leanok` }] },
+        fix: { label: "Add \\leanok", edits: [{ file: n.file, line: anchor, op: "insert-after", text: `${indent}\\leanok`, expect: anchorOf(linesOf(n.file)[anchor - 1]) }] },
         auto: true,
       });
     }

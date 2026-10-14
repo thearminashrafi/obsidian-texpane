@@ -52,7 +52,12 @@ class FakeView {
   constructor(public file: TFile, text: string, private rootAbs: string) {
     this.state = EditorState.create({ doc: text });
   }
-  leaf = {};
+  leaf: { view: FakeView; getViewState(): { state: { file: string } }; setEphemeralState(s: unknown): void; ephemeral: unknown[] } = {
+    view: this,
+    getViewState: () => ({ state: { file: this.file.path } }),
+    setEphemeralState: (st: unknown) => void this.leaf.ephemeral.push(st),
+    ephemeral: [],
+  };
   getViewData() {
     return this.state.doc.toString();
   }
@@ -109,6 +114,10 @@ function setup(opts: { states?: Record<string, DeclState>; syncLeanok?: boolean;
   vault.put("lean/Foo.lean", "theorem Foo.a : True := sorry\n");
   const stubs: Array<{ root: string; req: { file: string; name: string; docstring: string } }> = [];
   const opened: string[] = [];
+  const openOpts: unknown[] = [];
+  const calls = { list: 0, listDelay: 0, status: 0 };
+  const handlers = new Map<string, Array<() => void>>();
+  const deferredLeaves: unknown[] = [];
   const statusListeners = new Set<(r: string, n: string[] | "all") => void>();
   const api: LeanPaneApiV1 = {
     version: 1,
@@ -116,13 +125,17 @@ function setup(opts: { states?: Record<string, DeclState>; syncLeanok?: boolean;
       return p.startsWith("lean/") ? ({ root: "lean", absRoot: BASE + "/lean", toolchain: "v4.25.1", usesMathlib: false } as LeanProjectInfo) : null;
     },
     async getStatus(_root, names) {
+      calls.status++;
       return Object.fromEntries(names.map((n) => [n, { name: n, state: states[n] ?? "unknown", source: "live", updatedAt: 1 } as DeclStatus]));
     },
     async listDeclarations() {
+      calls.list++;
+      if (calls.listDelay) await flush(calls.listDelay);
       return [{ name: "Foo.a", kind: "theorem", file: "lean/Foo.lean", line: 1 }];
     },
-    async openDeclaration(_r, n) {
+    async openDeclaration(_r, n, o) {
       opened.push(n);
+      openOpts.push(o);
       return true;
     },
     async createStub(root, req) {
@@ -136,17 +149,19 @@ function setup(opts: { states?: Record<string, DeclState>; syncLeanok?: boolean;
   };
   const views: FakeView[] = [];
   const plugin = {
-    app: { vault, plugins: { plugins: { leanpane: opts.present === false ? undefined : { api } } }, workspace: { on: () => ({}), getLeaf: () => ({ openFile: async () => undefined }), setActiveLeaf() {} } },
+    app: { vault, plugins: { plugins: { leanpane: opts.present === false ? undefined : { api } } }, workspace: { on: (name: string, cb: () => void) => (handlers.set(name, [...(handlers.get(name) ?? []), cb]), {}), getLeaf: () => ({ openFile: async () => undefined }), setActiveLeaf() {} } },
     settings: { syncLeanok: opts.syncLeanok ?? false },
     notes: { basePath: () => BASE },
     latexViews: () => views,
+    latexLeaves: () => [...deferredLeaves, ...views.map((v) => v.leaf)],
     projects: () => [{ root: "bp", main: "bp/main.tex", name: "bp", files: ["bp/main.tex"] }],
     registerEvent: () => undefined,
     activeLatexView: () => views[0] ?? null,
     ensureFolder: async () => undefined,
   };
   const integ = new LeanIntegration(plugin as never);
-  return { integ, vault, views, api, stubs, opened, states, plugin };
+  const fire = (name: string) => (handlers.get(name) ?? []).forEach((h) => h());
+  return { integ, vault, views, api, stubs, opened, openOpts, calls, states, plugin, fire, deferredLeaves };
 }
 
 function openView(ctx: ReturnType<typeof setup>) {
@@ -227,6 +242,7 @@ describe("LeanIntegration: mismatch diagnostics for a view", () => {
     off.integ.dispose();
 
     const on = setup({ syncLeanok: true });
+    on.integ.syncGate.timing = { stableMs: 50, minGapMs: 0 };
     const v2 = openView(on);
     on.integ.start();
     on.integ.attachView(v2 as never);
@@ -374,6 +390,258 @@ describe("TeXPane API v1 (for LeanPane)", () => {
     const d = await c.integ.panelData("bp/main.tex");
     expect(d.info?.root).toBe("lean");
     expect(d.graph.map((n) => [n.id, n.status])).toEqual([["lem:a", "stated"], ["lem:b", "proved"], ["lem:c", "missing"]]);
+  });
+});
+
+describe("LeanPane api events", () => {
+  it("api-unload: LeanPane is gone at once, without looking the API up again, and everything is cleared", async () => {
+    const c = setup();
+    const v = openView(c);
+    c.integ.start();
+    c.integ.attachView(v as never);
+    await flush(400);
+    expect(v.diags.length).toBe(3);
+    // from now on count every lookup of the plugin object
+    let reads = 0;
+    const plugins = c.plugin.app.plugins.plugins as Record<string, unknown>;
+    const lp = plugins.leanpane;
+    Object.defineProperty(plugins, "leanpane", { get: () => (reads++, lp) });
+    c.fire("leanpane:api-unload");
+    expect(reads).toBe(0);
+    // the plugin object still lists the api, yet:
+    expect(c.integ.available()).toBe(false);
+    expect(v.diags).toEqual([]);
+    expect(c.integ.chipHost(v as never).availability()).toBe("no-leanpane");
+    expect(c.integ.completionHost(v as never).declarations("")).toBeNull();
+    // a layout change while it is still half unloaded does not bring it back
+    c.integ.recheck();
+    expect(c.integ.available()).toBe(false);
+    await flush(300);
+    expect(v.diags).toEqual([]);
+    c.integ.dispose();
+  });
+
+  it("api-ready is handled deferred, and retried once after ~200 ms when the API is not visible yet", async () => {
+    const c = setup();
+    c.integ.start();
+    const plugins = c.plugin.app.plugins.plugins as Record<string, unknown>;
+    const lp = plugins.leanpane;
+    c.fire("leanpane:api-unload");
+    expect(c.integ.available()).toBe(false);
+    // ready fires; the plugin object does not expose the api yet
+    plugins.leanpane = undefined;
+    c.fire("leanpane:api-ready");
+    expect(c.integ.available()).toBe(false); // nothing happens synchronously
+    await flush(30);
+    expect(c.integ.available()).toBe(false);
+    plugins.leanpane = lp; // appears a bit later
+    await flush(250);
+    expect(c.integ.available()).toBe(true);
+    c.integ.dispose();
+  });
+
+  it("api-ready with the API already visible picks it up on the next tick", async () => {
+    const c = setup();
+    c.integ.start();
+    c.fire("leanpane:api-unload");
+    c.fire("leanpane:api-ready");
+    expect(c.integ.available()).toBe(false);
+    await flush(20);
+    expect(c.integ.available()).toBe(true);
+    c.integ.dispose();
+  });
+});
+
+describe("declaration completion: one query in flight", () => {
+  it("concurrent callers share one listDeclarations call; the result is cached for the TTL", async () => {
+    const c = setup();
+    c.calls.listDelay = 40;
+    const host = c.integ.completionHost(openView(c) as never);
+    const rs = await Promise.all([host.declarations("F")!, host.declarations("Fo")!, host.declarations("Foo")!]);
+    expect(c.calls.list).toBe(1);
+    expect(rs.every((r) => r.items.length === 1)).toBe(true);
+    await host.declarations("Foo");
+    expect(c.calls.list).toBe(1);
+    c.integ.dispose();
+  });
+  it("a failed query is not remembered", async () => {
+    const c = setup();
+    const ok = c.api.listDeclarations;
+    c.api.listDeclarations = async () => {
+      throw new Error("boom");
+    };
+    const host = c.integ.completionHost(openView(c) as never);
+    await expect(host.declarations("F")!).rejects.toThrow("boom");
+    c.api.listDeclarations = ok;
+    expect((await host.declarations("F")!).items.length).toBe(1);
+  });
+});
+
+describe("line-addressed edits are verified", () => {
+  it("applyEdits skips an edit whose line no longer holds the expected text", async () => {
+    const c = setup();
+    const v = openView(c);
+    const n = await c.integ.applyEdits([
+      { file: "bp/main.tex", line: 6, op: "remove-token", token: "\\leanok", expect: "something else" },
+      { file: "bp/main.tex", line: 5, op: "insert-after", text: "X", expect: "\\begin{nope}" },
+    ]);
+    expect(n).toBe(0);
+    expect(v.getViewData()).toBe(TEX);
+    expect(await c.integ.applyEdits([{ file: "bp/main.tex", line: 6, op: "remove-token", token: "\\leanok", expect: "\\leanok" }])).toBe(1);
+  });
+
+  it("Formalize this: the \\label is found again after createStub (the user kept typing)", async () => {
+    const c = setup();
+    const v = openView(c);
+    v.state = EditorState.create({ doc: "\\begin{lemma}\n  \\label{lem:bound}\n  Stmt.\n\\end{lemma}\n" });
+    c.api.createStub = async (_r, req) => {
+      // meanwhile, two lines were added above the statement
+      v.state = v.state.update({ changes: { from: 0, insert: "% a\n% b\n" } }).state;
+      return { file: req.file, line: 3 };
+    };
+    const info = { root: "lean", absRoot: BASE + "/lean", toolchain: "v4.25.1", usesMathlib: false };
+    await (c.integ as unknown as { createAndLink(v: unknown, i: unknown, l: string, n: string, f: string): Promise<void> }).createAndLink(v, info, "lem:bound", "lem_bound", "lean/Foo.lean");
+    expect(v.getViewData().split("\n").slice(0, 5)).toEqual(["% a", "% b", "\\begin{lemma}", "  \\label{lem:bound}", "  \\lean{lem_bound}"]);
+  });
+
+  it("Formalize this: if the \\label vanished meanwhile, nothing is inserted and the user is told", async () => {
+    const c = setup();
+    const v = openView(c);
+    v.state = EditorState.create({ doc: "\\begin{lemma}\n  \\label{lem:bound}\n  Stmt.\n\\end{lemma}\n" });
+    c.api.createStub = async (_r, req) => {
+      v.state = EditorState.create({ doc: "nothing here\n" });
+      return { file: req.file, line: 3 };
+    };
+    const info = { root: "lean", absRoot: BASE + "/lean", toolchain: "v4.25.1", usesMathlib: false };
+    await (c.integ as unknown as { createAndLink(v: unknown, i: unknown, l: string, n: string, f: string): Promise<void> }).createAndLink(v, info, "lem:bound", "lem_bound", "lean/Foo.lean");
+    expect(v.getViewData()).toBe("nothing here\n");
+    expect(notices().at(-1)).toContain("moved while it was being created");
+  });
+});
+
+describe("Sync \\leanok: hysteresis", () => {
+  it("a declaration flipping stated <-> proved does not rewrite the .tex; a stable state does, once per gap", async () => {
+    const c = setup({ syncLeanok: true, states: { "Foo.a": "proved" } });
+    c.integ.syncGate.timing = { stableMs: 600, minGapMs: 5000 };
+    const v = openView(c);
+    c.integ.start();
+    c.integ.attachView(v as never);
+    const flip = async (state: DeclState) => {
+      c.states["Foo.b"] = state;
+      await c.integ.bridge.request("lean", ["Foo.b"], true);
+      c.integ.syncNow();
+    };
+    await flush(300); // proved-no-leanok for lem:b seen
+    expect(v.getViewData()).toBe(TEX);
+    await flip("stated");
+    await flush(300);
+    await flip("proved");
+    await flush(300); // only ~300 ms stable again
+    expect(v.getViewData()).toBe(TEX);
+    await flush(800); // now stable for > 600 ms
+    expect(v.getViewData()).toContain("\\begin{proof}\n  \\leanok\n  Hard.");
+    const after = v.getViewData();
+    // flips right after: the minimum gap per label holds the rewrite back
+    await flip("stated");
+    await flush(1200);
+    expect(v.getViewData()).toBe(after);
+    c.integ.dispose();
+  });
+});
+
+describe("LeanPane absent: typing costs nothing", () => {
+  it("viewEdited / texChanged set no timer and never invalidate", async () => {
+    const c = setup({ present: false });
+    c.integ.start();
+    let changes = 0;
+    c.integ.store.onChange(() => changes++);
+    const v = openView(c);
+    c.integ.viewEdited(v as never);
+    c.integ.texChanged();
+    expect((c.integ as unknown as { editTimer: unknown }).editTimer).toBeNull();
+    await flush(800);
+    expect(changes).toBe(0);
+    c.integ.dispose();
+  });
+  it("with LeanPane they still debounce into one invalidation", async () => {
+    const c = setup();
+    c.integ.start();
+    let changes = 0;
+    c.integ.store.onChange(() => changes++);
+    const v = openView(c);
+    c.integ.viewEdited(v as never);
+    c.integ.viewEdited(v as never);
+    await flush(800);
+    expect(changes).toBe(1);
+    c.integ.dispose();
+  });
+});
+
+describe("open views: deferred leaves count", () => {
+  it("openLocation loads a deferred leaf for the file instead of opening a duplicate tab", async () => {
+    const c = setup();
+    const loaded: number[] = [];
+    const eph: unknown[] = [];
+    c.deferredLeaves.push({
+      view: {},
+      getViewState: () => ({ state: { file: "bp/main.tex" } }),
+      loadIfDeferred: async () => void loaded.push(1),
+      setEphemeralState: (st: unknown) => void eph.push(st),
+    });
+    const opened: unknown[] = [];
+    (c.plugin.app.workspace as { getLeaf: unknown }).getLeaf = () => ({ openFile: async (...a: unknown[]) => void opened.push(a) });
+    await c.integ.api.openLocation("bp/main.tex", 9);
+    expect(loaded).toEqual([1]);
+    expect(eph).toEqual([{ line: 8 }]);
+    expect(opened).toEqual([]);
+  });
+  it("a loaded view is revealed directly; an unrelated file opens a new tab", async () => {
+    const c = setup();
+    const v = openView(c);
+    c.vault.put("bp/other.tex", "x");
+    const opened: unknown[] = [];
+    (c.plugin.app.workspace as { getLeaf: unknown }).getLeaf = () => ({ openFile: async (...a: unknown[]) => void opened.push(a) });
+    await c.integ.api.openLocation("bp/main.tex", 4);
+    expect(v.revealed).toEqual([4]);
+    await c.integ.api.openLocation("bp/other.tex", 2);
+    expect(opened.length).toBe(1);
+  });
+});
+
+describe("opening a declaration, and absolute file paths", () => {
+  it("always asks LeanPane for a new leaf, never replacing the TeXPane tab", async () => {
+    const c = setup();
+    const v = openView(c);
+    c.integ.start();
+    c.integ.attachView(v as never);
+    await flush(30);
+    c.integ.chipHost(v as never).open("Foo.b", false);
+    await flush(10);
+    await c.integ.openDeclarationIn("lean", "Foo.a");
+    expect(c.openOpts).toEqual([{ newLeaf: true }, { newLeaf: true }]);
+    c.integ.dispose();
+  });
+  it("absolute status files are shown vault-relative when inside the vault, kept otherwise", async () => {
+    const c = setup();
+    c.api.getStatus = async (_r, names) =>
+      Object.fromEntries(names.map((n) => [n, { name: n, state: "proved", file: n === "Foo.a" ? BASE + "/lean/Foo.lean" : "/elsewhere/Lib/B.lean", line: 3, source: "live", updatedAt: 1 } as DeclStatus]));
+    c.api.listDeclarations = async () => [
+      { name: "Foo.a", kind: "theorem", file: BASE + "/lean/Foo.lean", line: 1 },
+      { name: "Out.b", kind: "def", file: "/elsewhere/Lib/B.lean", line: 2 },
+    ];
+    const v = openView(c);
+    c.integ.start();
+    c.integ.attachView(v as never);
+    const host = c.integ.chipHost(v as never);
+    await flush(30);
+    host.status("Foo.a");
+    host.status("Foo.b");
+    await flush(150);
+    expect(host.status("Foo.a")?.file).toBe("lean/Foo.lean");
+    expect(host.status("Foo.b")?.file).toBe("/elsewhere/Lib/B.lean");
+    const d = (await c.integ.completionHost(v as never).declarations(""))!;
+    expect(d.items.map((i) => i.file)).toEqual(["lean/Foo.lean", "/elsewhere/Lib/B.lean"]);
+    c.integ.dispose();
   });
 });
 

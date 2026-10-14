@@ -84,7 +84,8 @@ class LeanChipWidget extends WidgetType {
       e.preventDefault();
       if (e.metaKey || e.ctrlKey) {
         const name = (e.target as HTMLElement).closest<HTMLElement>(".tp-lean-name")?.dataset.leanName ?? this.names[0];
-        this.host.open(name, e.altKey);
+        // always beside: opening in place would replace the LaTeX tab
+        this.host.open(name, true);
         return;
       }
       // reveal the raw text for editing
