@@ -55,7 +55,22 @@ export class ProjectsView extends ItemView {
     if (this.listEl) this.render();
   }
 
+  /** True once onOpen has built the panel (a restored leaf can exist without that). */
+  isLive(): boolean {
+    return !!this.listEl && this.contentEl.contains(this.listEl);
+  }
+
   async onOpen() {
+    try {
+      this.build();
+    } catch (e) {
+      console.error("[TeXPane] projects panel failed to open", e);
+      this.contentEl.empty();
+      this.contentEl.createDiv({ cls: "tp-projects-note", text: `The LaTeX projects panel failed to load: ${(e as Error).message}` });
+    }
+  }
+
+  private build() {
     const root = this.contentEl;
     root.empty();
     root.addClass("tp-projects");
@@ -96,6 +111,11 @@ export class ProjectsView extends ItemView {
     this.render();
     // the index may still be empty if this view opened before the first scan finished
     if (this.plugin.projects().length === 0) void this.plugin.rebuildProjects();
+  }
+
+  /** Obsidian shows a sidebar view when its tab is clicked; make sure it is built and current. */
+  onResize() {
+    if (!this.isLive()) void this.onOpen();
   }
 
   async onClose() {
