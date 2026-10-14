@@ -1,3 +1,3 @@
-TeXPane 0.1.7
+TeXPane 0.1.8
 
-- Fix: the LaTeX projects panel could stay blank when restored from the saved layout or after a plugin reload. It is now rebuilt when shown, and shows an error message instead of nothing if it cannot load.
+- Fix: the LaTeX projects panel was always blank. A helper method in the panel shared its name with an Obsidian internal, so Obsidian never attached the panel to the sidebar.

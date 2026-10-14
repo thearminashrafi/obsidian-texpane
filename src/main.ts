@@ -72,7 +72,6 @@ export default class TexPanePlugin extends Plugin {
     this.app.workspace.onLayoutReady(() => {
       this.registerProjectIndexEvents();
       void this.rebuildProjects();
-      for (const leaf of this.app.workspace.getLeavesOfType(PROJECTS_TYPE)) if (!(leaf.view instanceof ProjectsView) || !leaf.view.isLive()) void this.reviveProjectsLeaf(leaf);
       void this.ensureToolchain().then(() => {
         if (!this.toolchain?.found) new Notice("TeXPane: LaTeX (latexmk) was not found. See Settings → TeXPane.", 8000);
       });
@@ -350,7 +349,7 @@ export default class TexPanePlugin extends Plugin {
     } catch {
       /* older Obsidian: no deferred views */
     }
-    if (!(leaf.view instanceof ProjectsView) || !leaf.view.isLive()) {
+    if (!(leaf.view instanceof ProjectsView)) {
       const st = leaf.getViewState();
       await leaf.setViewState({ type: PROJECTS_TYPE, state: st.state ?? {}, active: st.active });
     }

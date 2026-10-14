@@ -23,6 +23,8 @@ function fileIcon(path: string): string {
  * Sidebar panel for LaTeX work: a tree of the projects folder (sub-folders, single-file documents and
  * multi-file projects), plus the projects that live elsewhere in the vault.
  */
+// Note: private helpers must not reuse names of Obsidian View internals (open, close, load, ...). A method
+// called open() replaced View.open(), so Obsidian never attached the panel and it stayed blank (0.1.5-0.1.7).
 export class ProjectsView extends ItemView {
   /** Expanded nodes: "p:<main>" for projects, "d:<folder path>" for folders. Kept in the view state. */
   private expanded = new Set<string>();
@@ -52,7 +54,7 @@ export class ProjectsView extends ItemView {
     const ex = (state as { expanded?: unknown } | null)?.expanded;
     if (Array.isArray(ex)) this.expanded = new Set(ex.filter((x): x is string => typeof x === "string"));
     await super.setState(state, result);
-    if (this.listEl) this.render();
+    if (this.listEl) this.redraw();
   }
 
   /** True once onOpen has built the panel (a restored leaf can exist without that). */
@@ -85,7 +87,7 @@ export class ProjectsView extends ItemView {
     bar.createDiv({ cls: "tp-projects-spacer" });
     this.iconButton(bar, "chevrons-down-up", "Collapse all", () => {
       this.expanded.clear();
-      this.changed();
+      this.stateChanged();
     });
     this.iconButton(bar, "refresh-cw", "Rescan the vault", () => void this.plugin.rebuildProjects());
 
@@ -94,29 +96,26 @@ export class ProjectsView extends ItemView {
     const input = box.createEl("input", { attr: { type: "search", placeholder: "Filter…", spellcheck: "false", "aria-label": "Filter projects" } });
     input.addEventListener("input", () => {
       this.filter = input.value;
-      this.render();
+      this.redraw();
     });
 
     this.listEl = root.createDiv({ cls: "tp-projects-list" });
     this.footerEl = root.createDiv({ cls: "tp-projects-footer" });
 
-    this.register(this.plugin.onProjectsChanged(() => this.schedule()));
-    this.registerEvent(this.app.workspace.on("file-open", () => this.schedule()));
-    this.registerEvent(this.app.workspace.on("active-leaf-change", () => this.schedule()));
+    this.register(this.plugin.onProjectsChanged(() => this.scheduleRedraw()));
+    this.registerEvent(this.app.workspace.on("file-open", () => this.scheduleRedraw()));
+    this.registerEvent(this.app.workspace.on("active-leaf-change", () => this.scheduleRedraw()));
     // folders are shown even without projects in them, so follow folder changes too
-    this.registerEvent(this.app.vault.on("create", () => this.schedule()));
-    this.registerEvent(this.app.vault.on("delete", () => this.schedule()));
-    this.registerEvent(this.app.vault.on("rename", () => this.schedule()));
-    this.registerInterval(window.setInterval(() => this.render(), 30_000)); // keeps "5 min ago" fresh
-    this.render();
+    this.registerEvent(this.app.vault.on("create", () => this.scheduleRedraw()));
+    this.registerEvent(this.app.vault.on("delete", () => this.scheduleRedraw()));
+    this.registerEvent(this.app.vault.on("rename", () => this.scheduleRedraw()));
+    this.registerInterval(window.setInterval(() => this.redraw(), 30_000)); // keeps "5 min ago" fresh
+    this.redraw();
     // the index may still be empty if this view opened before the first scan finished
     if (this.plugin.projects().length === 0) void this.plugin.rebuildProjects();
   }
 
-  /** Obsidian shows a sidebar view when its tab is clicked; make sure it is built and current. */
-  onResize() {
-    if (!this.isLive()) void this.onOpen();
-  }
+
 
   async onClose() {
     if (this.renderTimer) window.clearTimeout(this.renderTimer);
@@ -138,20 +137,20 @@ export class ProjectsView extends ItemView {
     m.showAtMouseEvent(e);
   }
 
-  private schedule() {
+  private scheduleRedraw() {
     if (this.renderTimer) return;
     this.renderTimer = window.setTimeout(() => {
       this.renderTimer = null;
-      this.render();
+      this.redraw();
     }, 60);
   }
 
-  private changed() {
+  private stateChanged() {
     this.app.workspace.requestSaveLayout();
-    this.render();
+    this.redraw();
   }
 
-  private open(path: string, e: MouseEvent | KeyboardEvent | boolean | null, then?: (leaf: WorkspaceLeaf) => void) {
+  private openPath(path: string, e: MouseEvent | KeyboardEvent | boolean | null, then?: (leaf: WorkspaceLeaf) => void) {
     const file = this.app.vault.getAbstractFileByPath(path);
     if (!(file instanceof TFile)) {
       new Notice(`TeXPane: ${path} no longer exists`);
@@ -161,13 +160,13 @@ export class ProjectsView extends ItemView {
     void this.plugin.openFromPanel(file, newTab).then((leaf) => then?.(leaf));
   }
 
-  private toggle(key: string) {
+  private toggleNode(key: string) {
     if (!this.expanded.delete(key)) this.expanded.add(key);
-    this.changed();
+    this.stateChanged();
   }
 
   // ------------------------------------------------------------------ rendering
-  render() {
+  redraw() {
     if (!this.listEl) return;
     const el = this.listEl;
     const scroll = el.scrollTop;
@@ -265,7 +264,7 @@ export class ProjectsView extends ItemView {
     setIcon(chev, "right-triangle");
     setIcon(self.createDiv({ cls: "tp-row-icon" }), open ? "folder-open" : "folder");
     self.createDiv({ cls: "tree-item-inner", text: folder.name });
-    self.addEventListener("click", () => this.toggle(key));
+    self.addEventListener("click", () => this.toggleNode(key));
     self.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       this.folderMenu(folder, e);
@@ -283,7 +282,7 @@ export class ProjectsView extends ItemView {
     fs.createDiv({ cls: "tp-chevron-space" });
     setIcon(fs.createDiv({ cls: "tp-row-icon" }), fileIcon(path));
     fs.createDiv({ cls: "tree-item-inner", text: label, attr: { title: path } });
-    fs.addEventListener("click", (e) => this.open(path, e));
+    fs.addEventListener("click", (e) => this.openPath(path, e));
     fs.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       this.fileMenu(path, e);
@@ -305,7 +304,7 @@ export class ProjectsView extends ItemView {
       setIcon(chev, "right-triangle");
       chev.addEventListener("click", (e) => {
         e.stopPropagation();
-        this.toggle(key);
+        this.toggleNode(key);
       });
     } else self.createDiv({ cls: "tp-chevron-space" });
     const st = this.plugin.projectStatus(p);
@@ -314,7 +313,7 @@ export class ProjectsView extends ItemView {
     icon.createSpan({ cls: `tp-dot is-${st.state}` });
     self.createDiv({ cls: "tree-item-inner", text: p.name, attr: { title: p.main } });
     if (st.lastBuild) self.createSpan({ cls: "tp-time", text: formatRelativeTime(st.lastBuild, Date.now()) });
-    self.addEventListener("click", (e) => this.open(p.main, e));
+    self.addEventListener("click", (e) => this.openPath(p.main, e));
     self.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       this.projectMenu(p, e, showMove || !this.plugin.isInHome(p));
@@ -327,11 +326,11 @@ export class ProjectsView extends ItemView {
   // ------------------------------------------------------------------ menus
   private projectMenu(p: LatexProject, e: MouseEvent, offerMove: boolean) {
     const m = new Menu();
-    m.addItem((i) => i.setTitle("Open").setIcon("file-code").onClick(() => this.open(p.main, null)));
-    m.addItem((i) => i.setTitle("Open in new tab").setIcon("file-plus").onClick(() => this.open(p.main, true)));
+    m.addItem((i) => i.setTitle("Open").setIcon("file-code").onClick(() => this.openPath(p.main, null)));
+    m.addItem((i) => i.setTitle("Open in new tab").setIcon("file-plus").onClick(() => this.openPath(p.main, true)));
     m.addItem((i) =>
       i.setTitle("Open PDF").setIcon("file-text").onClick(() =>
-        this.open(p.main, null, (leaf) => {
+        this.openPath(p.main, null, (leaf) => {
           const v = leaf.view;
           if (v instanceof LatexWorkspaceView) v.setLayout("pdf");
         }),
@@ -364,8 +363,8 @@ export class ProjectsView extends ItemView {
 
   private fileMenu(path: string, e: MouseEvent) {
     const m = new Menu();
-    m.addItem((i) => i.setTitle("Open").setIcon("file").onClick(() => this.open(path, null)));
-    m.addItem((i) => i.setTitle("Open in new tab").setIcon("file-plus").onClick(() => this.open(path, true)));
+    m.addItem((i) => i.setTitle("Open").setIcon("file").onClick(() => this.openPath(path, null)));
+    m.addItem((i) => i.setTitle("Open in new tab").setIcon("file-plus").onClick(() => this.openPath(path, true)));
     m.addItem((i) => i.setTitle("Reveal in file explorer").setIcon("folder-search").onClick(() => this.reveal(path)));
     m.showAtMouseEvent(e);
   }
