@@ -1,3 +1,3 @@
-TeXPane 0.1.2
+TeXPane 0.1.3
 
-- The find and replace panel now follows your Obsidian theme (dark and light), with native-looking inputs and buttons.
+- New find and replace card: floating in the editor corner, with match count (3 of 12), match-case / regex / whole-word toggles, next/previous, and a collapsible replace row. Follows light and dark themes.

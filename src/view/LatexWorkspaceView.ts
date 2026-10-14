@@ -6,6 +6,7 @@ import { EditorView, drawSelection, highlightActiveLine, highlightActiveLineGutt
 import { bracketMatching, indentUnit } from "@codemirror/language";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
+import { createSearchPanel } from "../editor/searchPanel";
 import { findNext, findPrevious, openSearchPanel, search, searchKeymap } from "@codemirror/search";
 import { nextDiagnostic, previousDiagnostic } from "@codemirror/lint";
 import type TexPanePlugin from "../main";
@@ -304,7 +305,7 @@ export class LatexWorkspaceView extends TextFileView {
       closeBrackets(),
       indentUnit.of("  "),
       EditorState.tabSize.of(2),
-      search({ top: true }),
+      search({ top: true, createPanel: createSearchPanel }),
       this.wrapComp.of(s.softWrap ? EditorView.lineWrapping : []),
       ext === "bib" ? bibSyntax() : latexSyntax(),
       latexAutocomplete(host.completion),

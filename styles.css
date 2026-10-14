@@ -127,32 +127,47 @@
 .texpane-view .tp-line-flash { background: var(--text-highlight-bg); animation: tp-fade 1.4s ease-out forwards; }
 @keyframes tp-fade { from { background-color: var(--text-highlight-bg); } to { background-color: transparent; } }
 
-/* search panel: CodeMirror's default is light-only, so restyle it from Obsidian's variables */
-.texpane-view .cm-panels { background: var(--background-secondary); color: var(--text-normal); border-color: var(--background-modifier-border); font-family: var(--font-interface); font-size: var(--font-ui-small); }
-.texpane-view .cm-panels.cm-panels-top { border-bottom: 1px solid var(--background-modifier-border); }
-.texpane-view .cm-panel.cm-search { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 34px 8px 10px; }
-.texpane-view .cm-panel.cm-search br { display: none; }
-.texpane-view .cm-panel.cm-search input.cm-textfield {
-  flex: 1 1 140px; min-width: 120px; max-width: 260px; height: var(--input-height, 28px); margin: 0; padding: 0 8px;
-  background: var(--background-modifier-form-field); color: var(--text-normal); font-family: var(--font-interface); font-size: var(--font-ui-small);
-  border: 1px solid var(--background-modifier-border); border-radius: var(--input-radius, var(--radius-s)); box-shadow: none;
+/* find & replace: a floating card in the editor's top-right corner, all colours from Obsidian's variables */
+.texpane-view .cm-panels-top { position: absolute; top: 8px; right: 18px; left: auto; width: auto; max-width: calc(100% - 36px); background: transparent; border: none; z-index: 30; pointer-events: none; }
+.texpane-view .cm-panels { color: var(--text-normal); font-family: var(--font-interface); }
+.tp-search {
+  pointer-events: auto; display: flex; flex-direction: column; gap: 6px; padding: 6px 6px 6px 4px; font-family: var(--font-interface); font-size: var(--font-ui-small);
+  background: var(--background-secondary); border: 1px solid var(--background-modifier-border); border-radius: var(--radius-l, 10px);
+  box-shadow: var(--shadow-s); animation: tp-search-in 0.12s ease-out;
 }
-.texpane-view .cm-panel.cm-search input.cm-textfield:focus { outline: none; border-color: var(--interactive-accent); box-shadow: 0 0 0 2px var(--background-modifier-border-focus); }
-.texpane-view .cm-panel.cm-search input.cm-textfield::placeholder { color: var(--text-faint); }
-.texpane-view .cm-panel.cm-search button.cm-button {
-  height: var(--input-height, 28px); margin: 0; padding: 0 10px; background-image: none; background: var(--interactive-normal); color: var(--text-normal);
-  font-family: var(--font-interface); font-size: var(--font-ui-small); border: 1px solid var(--background-modifier-border); border-radius: var(--radius-s); box-shadow: none; cursor: pointer; text-transform: none;
+@keyframes tp-search-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.tp-search-row { display: flex; align-items: center; gap: 4px; }
+.tp-search-replace-row { display: none; margin-left: 26px; }
+.tp-search.has-replace .tp-search-replace-row { display: flex; }
+.tp-search-field {
+  display: flex; align-items: center; flex: 1 1 auto; min-width: 0; padding-right: 2px;
+  background: var(--background-modifier-form-field); border: 1px solid var(--background-modifier-border); border-radius: var(--radius-m, 8px);
 }
-.texpane-view .cm-panel.cm-search button.cm-button:hover { background: var(--interactive-hover); }
-.texpane-view .cm-panel.cm-search button.cm-button:active { background: var(--interactive-normal); }
-.texpane-view .cm-panel.cm-search label { display: inline-flex; align-items: center; gap: 4px; margin: 0 4px 0 0; color: var(--text-muted); font-size: var(--font-ui-smaller); white-space: nowrap; }
-.texpane-view .cm-panel.cm-search input[type="checkbox"] { margin: 0; accent-color: var(--interactive-accent); }
-.texpane-view .cm-panel.cm-search button[name="close"] {
-  position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; padding: 0; display: flex; align-items: center; justify-content: center;
-  background: transparent; border: none; color: var(--text-muted); font-size: 16px; line-height: 1; border-radius: var(--radius-s); cursor: pointer;
+.tp-search-field:focus-within { border-color: var(--interactive-accent); box-shadow: 0 0 0 2px var(--background-modifier-border-focus); }
+.tp-search-input {
+  flex: 1 1 auto; min-width: 120px; width: 190px; height: 26px; padding: 0 8px; background: transparent !important; border: none !important; box-shadow: none !important;
+  color: var(--text-normal); font-family: var(--font-interface); font-size: var(--font-ui-small);
 }
-.texpane-view .cm-panel.cm-search button[name="close"]:hover { background: var(--background-modifier-hover); color: var(--text-normal); }
-.texpane-view .cm-panel.cm-search .cm-textfield[name="replace"] { margin-left: 0; }
+.tp-search-input:focus { outline: none; }
+.tp-search-input::placeholder { color: var(--text-faint); }
+.tp-search-input.is-invalid { color: var(--text-error); }
+.tp-search-btn {
+  display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 24px; height: 24px; padding: 0;
+  background: transparent; border: none; box-shadow: none; border-radius: var(--radius-s); color: var(--text-muted); cursor: pointer;
+}
+.tp-search-btn:hover { background: var(--background-modifier-hover); color: var(--text-normal); }
+.tp-search-btn svg { width: 15px; height: 15px; }
+.tp-search-toggle { width: 22px; height: 20px; font-family: var(--font-monospace); font-size: 11px; font-weight: 600; }
+.tp-search-toggle.is-on { background: var(--interactive-accent); color: var(--text-on-accent); }
+.tp-search-expand svg { transition: transform 0.12s ease; }
+.tp-search-expand.is-open svg { transform: rotate(90deg); }
+.tp-search-count { min-width: 56px; padding: 0 4px; text-align: center; color: var(--text-muted); font-size: var(--font-ui-smaller); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tp-search-count.is-empty { color: var(--text-error); }
+.tp-search-text-btn {
+  height: 24px; padding: 0 9px; background: var(--interactive-normal); color: var(--text-normal); border: none; box-shadow: none; border-radius: var(--radius-s);
+  font-family: var(--font-interface); font-size: var(--font-ui-smaller); cursor: pointer;
+}
+.tp-search-text-btn:hover { background: var(--interactive-hover); }
 .texpane-view .cm-searchMatch { background: var(--text-highlight-bg); }
 .texpane-view .cm-searchMatch.cm-searchMatch-selected { background: var(--text-selection); outline: 1px solid var(--interactive-accent); }
 

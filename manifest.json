@@ -1,7 +1,7 @@
 {
   "id": "texpane",
   "name": "TeXPane",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "minAppVersion": "1.8.0",
   "description": "Overleaf-style LaTeX workspace: editor, live PDF and log in one tab, with Obsidian notes embeddable via \\obsidian{Note}.",
   "author": "Armin",
