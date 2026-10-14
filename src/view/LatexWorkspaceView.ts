@@ -6,7 +6,7 @@ import { EditorView, drawSelection, highlightActiveLine, highlightActiveLineGutt
 import { bracketMatching, indentUnit } from "@codemirror/language";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
-import { search, searchKeymap } from "@codemirror/search";
+import { findNext, findPrevious, openSearchPanel, search, searchKeymap } from "@codemirror/search";
 import { nextDiagnostic, previousDiagnostic } from "@codemirror/lint";
 import type TexPanePlugin from "../main";
 import type { LayoutMode } from "../settings";
@@ -68,6 +68,14 @@ export class LatexWorkspaceView extends TextFileView {
     // Mod-s through Obsidian's keymap too: the editor keymap alone never sees it if Obsidian handles the key first
     this.scope = new Scope(this.app.scope);
     this.scope.register(["Mod"], "s", () => (this.saveAndCompile(), false));
+    // Find / replace: Obsidian's own Mod-f belongs to Markdown views, so claim it here (and Mod-g to step through matches)
+    const withEditor = (fn: (v: EditorView) => unknown) => () => {
+      if (this.editor) fn(this.editor);
+      return false;
+    };
+    this.scope.register(["Mod"], "f", withEditor(openSearchPanel));
+    this.scope.register(["Mod"], "g", withEditor(findNext));
+    this.scope.register(["Mod", "Shift"], "g", withEditor(findPrevious));
   }
 
   getViewType() {
@@ -281,6 +289,7 @@ export class LatexWorkspaceView extends TextFileView {
     const keys = keymap.of([
       { key: "Mod-Enter", run: () => (void this.recompile(), true) },
       { key: "Mod-s", run: () => this.saveAndCompile() },
+      { key: "Mod-f", run: openSearchPanel, scope: "editor search-panel" },
       { key: "Mod-/", run: toggleComment },
       { key: "Mod-b", run: bold },
       { key: "Mod-i", run: italic },
