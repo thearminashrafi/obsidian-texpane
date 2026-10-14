@@ -1,0 +1,19 @@
+name: Bug report
+description: Something does not work
+body:
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: "Operating system, Obsidian version, TeXPane version, output of `latexmk -v`"
+    validations: { required: true }
+  - type: textarea
+    id: steps
+    attributes:
+      label: What did you do, what did you expect, what happened?
+    validations: { required: true }
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log drawer text / console output
+      description: "Remove anything private."

@@ -2,6 +2,8 @@
 
 An Overleaf-style LaTeX workspace inside Obsidian (desktop only, macOS first): a CodeMirror 6 editor, a live PDF preview and a log drawer in one tab, plus `\obsidian{Note}` to embed vault notes in your document. Compilation runs locally with `latexmk`.
 
+> **Beta.** Tested automatically (including real `latexmk` builds), but young. Full walkthrough: **[User guide](docs/USER_GUIDE.md)**. Problems: [open an issue](../../issues/new/choose).
+
 ## Requirements
 
 - Obsidian 1.8.0 or newer, desktop.
@@ -9,7 +11,9 @@ An Overleaf-style LaTeX workspace inside Obsidian (desktop only, macOS first): a
 
 ## Install
 
-**One vault:** download `main.js`, `manifest.json` and `styles.css` from the [latest release](../../releases/latest), put them in `<vault>/.obsidian/plugins/texpane/`, then enable "TeXPane" under Settings → Community plugins (turn off Restricted mode first if needed).
+**With BRAT (recommended; updates itself):** install the *Obsidian42 - BRAT* plugin, run "BRAT: Add a beta plugin for testing", paste `thearminashrafi/obsidian-texpane`, then enable TeXPane under Settings, Community plugins.
+
+**One vault, by hand:** download `main.js`, `manifest.json` and `styles.css` from the [latest release](../../releases/latest), put them in `<vault>/.obsidian/plugins/texpane/`, then enable "TeXPane" under Settings → Community plugins (turn off Restricted mode first if needed).
 
 **Several vaults, one shared copy (macOS/Linux):** Obsidian installs plugins per vault. `scripts/add-texpane.sh` keeps a single copy in `~/Documents/.obsidian-shared-plugins/texpane` and links it into each vault, so one update reaches all of them:
 
