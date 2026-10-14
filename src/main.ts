@@ -83,7 +83,7 @@ export default class TexPanePlugin extends Plugin {
     this.app.workspace.onLayoutReady(() => {
       this.registerProjectIndexEvents();
       void this.rebuildProjects();
-      for (const leaf of this.app.workspace.getLeavesOfType(PROJECTS_TYPE)) if (!(leaf.view instanceof ProjectsView) || !leaf.view.isLive()) void this.reviveProjectsLeaf(leaf);
+      window.setTimeout(() => { for (const leaf of this.app.workspace.getLeavesOfType(PROJECTS_TYPE)) void this.reviveProjectsLeaf(leaf); }, 1500);
       void this.ensureToolchain().then(() => {
         if (!this.toolchain?.found) new Notice("TeXPane: LaTeX (latexmk) was not found. See Settings → TeXPane.", 8000);
       });
@@ -355,14 +355,14 @@ export default class TexPanePlugin extends Plugin {
    * outlived a plugin reload. Load it, and if it still is not a live ProjectsView, recreate it in place.
    */
   private async reviveProjectsLeaf(leaf: WorkspaceLeaf) {
-    this.debug(`revive: view=${leaf.view?.constructor?.name} type=${leaf.view?.getViewType?.()} live=${leaf.view instanceof ProjectsView ? leaf.view.isLive() : "n/a"}`);
+    this.debug(`revive: view=${leaf.view?.constructor?.name} type=${leaf.view?.getViewType?.()} live=${leaf.view instanceof ProjectsView ? leaf.view.isLive() + " " + leaf.view.domReport() : "n/a"}`);
     const l = leaf as WorkspaceLeaf & { loadIfDeferred?: () => Promise<void> };
     try {
       await l.loadIfDeferred?.();
     } catch {
       /* older Obsidian: no deferred views */
     }
-    if (!(leaf.view instanceof ProjectsView) || !leaf.view.isLive()) {
+    if (!(leaf.view instanceof ProjectsView)) {
       const st = leaf.getViewState();
       await leaf.setViewState({ type: PROJECTS_TYPE, state: st.state ?? {}, active: st.active });
     }

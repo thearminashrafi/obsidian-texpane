@@ -121,7 +121,20 @@ export class ProjectsView extends ItemView {
 
   /** Obsidian shows a sidebar view when its tab is clicked; make sure it is built and current. */
   onResize() {
+    this.plugin.debug(`onResize live=${this.isLive()} ${this.domReport()}`);
     if (!this.isLive()) void this.onOpen();
+  }
+
+  domReport(): string {
+    const c = this.contentEl;
+    const r = c.getBoundingClientRect();
+    const leafEl = (this.leaf as unknown as { containerEl?: HTMLElement }).containerEl;
+    const chain: string[] = [];
+    for (let e: HTMLElement | null = c; e && chain.length < 6; e = e.parentElement) {
+      const cs = getComputedStyle(e);
+      chain.push(`${e.className.toString().slice(0, 40)}(${cs.display},${cs.visibility},${Math.round(e.getBoundingClientRect().height)})`);
+    }
+    return `connected=${c.isConnected} rect=${Math.round(r.width)}x${Math.round(r.height)} inLeaf=${leafEl ? leafEl.contains(c) : "?"} leafConnected=${leafEl?.isConnected} leafHTML=${leafEl?.outerHTML.slice(0, 200).replace(/\n/g, " ")} chain=${chain.join(" < ")}`;
   }
 
   async onClose() {
