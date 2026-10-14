@@ -315,3 +315,20 @@
 /* focus mode: Obsidian chrome out of the way */
 body.texpane-focus .workspace-ribbon.mod-left,
 body.texpane-focus .workspace-ribbon.mod-right { display: none; }
+
+/* ------------------------------------------------------------------ projects panel */
+.tp-projects { display: flex; flex-direction: column; padding: 0; }
+.tp-projects .tp-projects-list { flex: 1 1 auto; overflow-y: auto; padding: var(--size-4-1) var(--size-4-2); }
+.tp-projects .tree-item-self { gap: var(--size-2-2); font-size: var(--font-ui-small); }
+.tp-projects .tree-item-children { padding-left: var(--size-4-4); }
+.tp-projects .tp-file .tree-item-inner { color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tp-projects .tp-file.is-active .tree-item-inner { color: var(--text-normal); }
+.tp-projects .tp-file-icon { color: var(--text-faint); }
+.tp-projects .tp-file-icon svg { width: 14px; height: 14px; }
+.tp-projects .tp-time { font-size: var(--font-ui-smaller); color: var(--text-faint); white-space: nowrap; }
+.tp-projects .tp-dot { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--text-faint); }
+.tp-projects .tp-dot.is-ok { background: var(--color-green); }
+.tp-projects .tp-dot.is-error { background: var(--color-red); }
+.tp-projects .tp-dot.is-building { background: var(--color-orange); }
+.tp-projects .tp-dot.is-none { background: var(--text-faint); }
+.tp-projects .tp-projects-empty { display: flex; flex-direction: column; align-items: center; gap: var(--size-4-3); padding: var(--size-4-6) var(--size-4-3); text-align: center; color: var(--text-muted); font-size: var(--font-ui-small); }

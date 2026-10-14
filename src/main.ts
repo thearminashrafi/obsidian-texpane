@@ -4,8 +4,12 @@ import * as path from "node:path";
 import { DEFAULT_SETTINGS, TexPaneSettingTab, type TexPaneSettings } from "./settings";
 import { LatexWorkspaceView, VIEW_TYPE } from "./view/LatexWorkspaceView";
 import { OUTLINE_TYPE, OutlineView } from "./view/OutlineView";
+import { PROJECTS_TYPE, ProjectsView } from "./view/ProjectsView";
+import { buildProjectIndex, type LatexProject } from "./core/projectIndex";
+import { explorerCss } from "./core/explorerCss";
+import { inBuildFolder, projectState, type ProjectStatus } from "./core/projectStatus";
 import { ObsidianNotes } from "./obsidianNotes";
-import { ProjectSession } from "./session";
+import { ProjectSession, type SessionEvent } from "./session";
 import { detectToolchain } from "./core/toolchain";
 import { exportFlattened } from "./core/exportFlatten";
 import { collectProjectFiles } from "./core/buildPipeline";
@@ -13,6 +17,8 @@ import { detectPackages } from "./core/indexers";
 import type { ProjectInfo, ToolchainInfo } from "./types";
 import { EmbedNoteModal, PromptModal } from "./modals";
 import { ARTICLE_TEMPLATE, PROJECT_BIB, PROJECT_MAIN } from "./templates";
+
+const EXPLORER_STYLE_ID = "texpane-explorer-css";
 
 export default class TexPanePlugin extends Plugin {
   settings: TexPaneSettings = { ...DEFAULT_SETTINGS };
@@ -24,6 +30,14 @@ export default class TexPanePlugin extends Plugin {
   private focusPrev: { left: boolean; right: boolean } | null = null;
   private toolchainPromise: Promise<ToolchainInfo> | null = null;
   private pruneTimer: number | null = null;
+  private projectList: LatexProject[] = [];
+  private projectListeners = new Set<() => void>();
+  private texCache = new Map<string, { mtime: number; size: number; content: string }>();
+  private indexTimer: number | null = null;
+  private indexRun = 0;
+  /** Last finished build per main file (vault path); outlives pruned sessions. */
+  private lastBuilds = new Map<string, { status: string; at: number }>();
+  private windowLeaf: WorkspaceLeaf | null = null;
 
   async onload() {
     await this.loadSettings();
@@ -31,6 +45,8 @@ export default class TexPanePlugin extends Plugin {
 
     this.registerView(VIEW_TYPE, (leaf) => new LatexWorkspaceView(leaf, this));
     this.registerView(OUTLINE_TYPE, (leaf) => new OutlineView(leaf, this));
+    this.registerView(PROJECTS_TYPE, (leaf) => new ProjectsView(leaf, this));
+    this.addRibbonIcon("sigma", "LaTeX projects", () => void this.openProjects());
     this.tryRegister(["tex"]);
     if (this.settings.registerAuxTypes) for (const ext of ["bib", "sty", "cls"]) this.tryRegister([ext]);
     this.registerHoverLinkSource("texpane", { display: "TeXPane", defaultMod: true });
@@ -54,6 +70,8 @@ export default class TexPanePlugin extends Plugin {
     this.registerEvent(this.app.workspace.on("layout-change", () => this.updateStatusBar()));
 
     this.app.workspace.onLayoutReady(() => {
+      this.registerProjectIndexEvents();
+      void this.rebuildProjects();
       void this.ensureToolchain().then(() => {
         if (!this.toolchain?.found) new Notice("TeXPane: LaTeX (latexmk) was not found. See Settings → TeXPane.", 8000);
       });
@@ -63,6 +81,10 @@ export default class TexPanePlugin extends Plugin {
   onunload() {
     if (this.pruneTimer) window.clearTimeout(this.pruneTimer);
     this.pruneTimer = null;
+    if (this.indexTimer) window.clearTimeout(this.indexTimer);
+    this.indexTimer = null;
+    this.projectListeners.clear();
+    document.getElementById(EXPLORER_STYLE_ID)?.remove();
     for (const s of this.sessions.values()) s.dispose();
     this.sessions.clear();
     document.body.removeClass("texpane-focus");
@@ -134,6 +156,7 @@ export default class TexPanePlugin extends Plugin {
     if (!s) {
       s = new ProjectSession(this, info);
       this.sessions.set(info.rootAbsPath, s);
+      s.listeners.add((e) => this.onSessionEvent(info.rootAbsPath, e));
     } else s.project = info;
     return s;
   }
@@ -278,7 +301,8 @@ export default class TexPanePlugin extends Plugin {
       icon: "zap",
       callback: () => void this.setAutoCompile(!this.settings.autoCompile),
     });
-    this.addCommand({ id: "new-project", name: "New LaTeX project", icon: "folder-plus", callback: () => this.newLatexProject(this.defaultFolder()) });
+    this.addCommand({ id: "new-project", name: "New LaTeX project", icon: "folder-plus", callback: () => void this.newProjectInHome() });
+    this.addCommand({ id: "open-projects", name: "Open LaTeX projects", icon: "sigma", callback: () => void this.openProjects() });
     this.addCommand({ id: "new-file", name: "New LaTeX file", icon: "file-plus", callback: () => void this.newLatexFile(this.defaultFolder()) });
     this.addCommand({ id: "open-outline", name: "Open LaTeX outline", icon: "list-tree", callback: () => void this.openOutline() });
     this.addCommand({
@@ -305,7 +329,170 @@ export default class TexPanePlugin extends Plugin {
     void this.app.workspace.revealLeaf(leaf);
   }
 
+  async openProjects() {
+    const existing = this.app.workspace.getLeavesOfType(PROJECTS_TYPE)[0];
+    const leaf: WorkspaceLeaf | null = existing ?? this.app.workspace.getLeftLeaf(false);
+    if (!leaf) return;
+    if (!existing) await leaf.setViewState({ type: PROJECTS_TYPE, active: true });
+    void this.app.workspace.revealLeaf(leaf);
+  }
+
+  // ------------------------------------------------------------------ project index
+  projects(): LatexProject[] {
+    return this.projectList;
+  }
+
+  /** Subscribe to index, status and setting changes. Returns the unsubscribe function. */
+  onProjectsChanged(cb: () => void): () => void {
+    this.projectListeners.add(cb);
+    return () => this.projectListeners.delete(cb);
+  }
+  private notifyProjects() {
+    for (const l of [...this.projectListeners]) {
+      try {
+        l();
+      } catch (e) {
+        console.error("[TeXPane] projects listener failed", e);
+      }
+    }
+  }
+
+  /** Called by the settings tab: re-apply explorer CSS and let the panel redraw. */
+  projectSettingsChanged() {
+    this.applyExplorerCss();
+    this.notifyProjects();
+  }
+
+  scheduleProjectRebuild() {
+    if (this.indexTimer) window.clearTimeout(this.indexTimer);
+    this.indexTimer = window.setTimeout(() => {
+      this.indexTimer = null;
+      void this.rebuildProjects();
+    }, 400);
+  }
+
+  private registerProjectIndexEvents() {
+    const v = this.app.vault;
+    const any = () => this.scheduleProjectRebuild();
+    this.registerEvent(v.on("create", any));
+    this.registerEvent(v.on("delete", any));
+    this.registerEvent(v.on("rename", any));
+    this.registerEvent(
+      v.on("modify", (f) => {
+        if (f instanceof TFile && f.extension === "tex") any();
+      }),
+    );
+  }
+
+  async rebuildProjects() {
+    const run = ++this.indexRun;
+    const bf = this.settings.buildFolder;
+    const files = this.app.vault.getFiles().filter((f) => !inBuildFolder(f.path, bf));
+    const tex = files.filter((f) => f.extension === "tex");
+    const seen = new Set(tex.map((f) => f.path));
+    for (const k of [...this.texCache.keys()]) if (!seen.has(k)) this.texCache.delete(k);
+    const texFiles = await Promise.all(
+      tex.map(async (f) => {
+        const c = this.texCache.get(f.path);
+        if (c && c.mtime === f.stat.mtime && c.size === f.stat.size) return { path: f.path, content: c.content };
+        let content = "";
+        try {
+          content = await this.app.vault.cachedRead(f);
+        } catch {
+          /* unreadable: treated as not a main file */
+        }
+        this.texCache.set(f.path, { mtime: f.stat.mtime, size: f.stat.size, content });
+        return { path: f.path, content };
+      }),
+    );
+    if (run !== this.indexRun) return; // a newer rebuild superseded this one
+    this.projectList = buildProjectIndex(texFiles, files.map((f) => f.path));
+    this.applyExplorerCss();
+    this.notifyProjects();
+  }
+
+  // ------------------------------------------------------------------ project status
+  private absOf(vaultPath: string): string {
+    return path.join(this.notes.basePath(), ...vaultPath.split("/"));
+  }
+
+  private onSessionEvent(abs: string, e: SessionEvent) {
+    if (e.type === "result") {
+      const rel = path.relative(this.notes.basePath(), abs).split(path.sep).join("/");
+      this.lastBuilds.set(rel, { status: e.result.status, at: Date.now() });
+    }
+    if (e.type !== "words") this.notifyProjects();
+  }
+
+  /** Status of a project's main file, for the panel's dot and relative time. */
+  projectStatus(project: LatexProject): ProjectStatus {
+    const s = this.sessions.get(this.absOf(project.main));
+    const last = this.lastBuilds.get(project.main);
+    return { state: projectState(s?.state, last?.status), lastBuild: last?.at };
+  }
+
+  /** The open TeXPane view (if any) that compiles this project. */
+  viewForProject(project: LatexProject): LatexWorkspaceView | null {
+    const abs = this.absOf(project.main);
+    return this.latexViews().find((v) => v.getSession()?.project.rootAbsPath === abs) ?? null;
+  }
+
+  // ------------------------------------------------------------------ explorer markers
+  private applyExplorerCss() {
+    const { markProjectsInExplorer: mark, hideProjectsInExplorer: hide } = this.settings;
+    const css = explorerCss(this.projectList.map((p) => p.root), { mark, hide });
+    let el = document.getElementById(EXPLORER_STYLE_ID);
+    if (!css) {
+      el?.remove();
+      return;
+    }
+    if (!el) {
+      el = document.head.createEl("style", { attr: { id: EXPLORER_STYLE_ID } });
+    }
+    if (el.textContent !== css) el.textContent = css;
+  }
+
+  // ------------------------------------------------------------------ opening from the panel
+  /** Open a file from the Projects panel: the shared pop-out window when enabled, else the current / a new tab. */
+  async openFromPanel(file: TFile, newTab = false): Promise<WorkspaceLeaf> {
+    const ws = this.app.workspace;
+    let leaf: WorkspaceLeaf;
+    if (this.settings.openProjectsInWindow) {
+      let alive = false;
+      if (this.windowLeaf) ws.iterateAllLeaves((l) => void (l === this.windowLeaf && (alive = true)));
+      if (!alive || !this.windowLeaf) this.windowLeaf = ws.getLeaf("window");
+      leaf = this.windowLeaf;
+    } else {
+      leaf = ws.getLeaf(newTab);
+    }
+    await leaf.openFile(file);
+    return leaf;
+  }
+
   // ------------------------------------------------------------------ new files / projects
+  /** Create the projects folder (and parents) when missing; "" means the vault root. */
+  private async ensureProjectsFolder(): Promise<TFolder> {
+    const vault = this.app.vault;
+    const dir = normalizePath(this.settings.projectsFolder.trim() || "/");
+    if (dir === "/" || dir === "") return vault.getRoot();
+    let cur = "";
+    for (const seg of dir.split("/").filter(Boolean)) {
+      cur = cur ? `${cur}/${seg}` : seg;
+      if (!vault.getAbstractFileByPath(cur)) await vault.createFolder(cur);
+    }
+    const f = vault.getAbstractFileByPath(dir);
+    if (!(f instanceof TFolder)) throw new Error(`"${dir}" is not a folder`);
+    return f;
+  }
+
+  async newProjectInHome() {
+    try {
+      this.newLatexProject(await this.ensureProjectsFolder());
+    } catch (e) {
+      new Notice(`TeXPane: ${(e as Error).message}`);
+    }
+  }
+
   private uniquePath(folder: TFolder, base: string, ext: string): string {
     const dir = folder.isRoot() ? "" : folder.path + "/";
     let p = normalizePath(`${dir}${base}.${ext}`);

@@ -26,6 +26,10 @@ export interface TexPaneSettings {
   highlightAsEmph: boolean;
   registerAuxTypes: boolean;
   showWordCount: boolean;
+  projectsFolder: string;
+  markProjectsInExplorer: boolean;
+  hideProjectsInExplorer: boolean;
+  openProjectsInWindow: boolean;
   /** per project (root path relative to vault): divider ratio */
   splitRatios: Record<string, number>;
 }
@@ -50,6 +54,10 @@ export const DEFAULT_SETTINGS: TexPaneSettings = {
   highlightAsEmph: true,
   registerAuxTypes: true,
   showWordCount: true,
+  projectsFolder: "LaTeX",
+  markProjectsInExplorer: true,
+  hideProjectsInExplorer: false,
+  openProjectsInWindow: false,
   splitRatios: {},
 };
 
@@ -225,6 +233,47 @@ export class TexPaneSettingTab extends PluginSettingTab {
           s.showWordCount = v;
           await save();
           this.plugin.updateStatusBar();
+        }),
+      );
+
+    new Setting(containerEl).setName("Projects").setHeading();
+    new Setting(containerEl)
+      .setName("Projects folder")
+      .setDesc("New LaTeX projects from the command and the Projects panel are created here. The folder is made if it is missing. Leave empty for the vault root.")
+      .addText((t) =>
+        t.setPlaceholder("LaTeX").setValue(s.projectsFolder).onChange(async (v) => {
+          s.projectsFolder = v.trim().replace(/^\/+|\/+$/g, "");
+          await save();
+        }),
+      );
+    new Setting(containerEl)
+      .setName("Mark projects in the file explorer")
+      .setDesc("Show a small sigma and an accent tint on folders that hold a LaTeX project.")
+      .addToggle((t) =>
+        t.setValue(s.markProjectsInExplorer).onChange(async (v) => {
+          s.markProjectsInExplorer = v;
+          await save();
+          this.plugin.projectSettingsChanged();
+        }),
+      );
+    new Setting(containerEl)
+      .setName("Hide projects from the file explorer")
+      .setDesc("Keep LaTeX project folders out of the file explorer. Open them from the LaTeX projects panel instead.")
+      .addToggle((t) =>
+        t.setValue(s.hideProjectsInExplorer).onChange(async (v) => {
+          s.hideProjectsInExplorer = v;
+          await save();
+          this.plugin.projectSettingsChanged();
+        }),
+      );
+    new Setting(containerEl)
+      .setName("Open projects in a separate window")
+      .setDesc("Files opened from the LaTeX projects panel go to one pop-out window, so notes and LaTeX stay apart.")
+      .addToggle((t) =>
+        t.setValue(s.openProjectsInWindow).onChange(async (v) => {
+          s.openProjectsInWindow = v;
+          await save();
+          this.plugin.projectSettingsChanged();
         }),
       );
 

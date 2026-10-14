@@ -26,7 +26,9 @@ From source: `npm install && npm run build` (outputs to `release/`). `npm run de
 ## Usage
 
 - Open any `.tex` file: it opens in the TeXPane view (editor | PDF, log drawer below). `.bib`, `.sty`, `.cls` open there too (setting, default on).
-- "New LaTeX project" / "New LaTeX file" from the command palette or file menu.
+- "New LaTeX project" / "New LaTeX file" from the command palette or file menu. New projects from the command palette or the Projects panel go into the projects folder (default `LaTeX/`, set in Settings → Projects).
+- **LaTeX projects panel** (sigma icon in the ribbon, or "Open LaTeX projects"): every project in the vault (a folder with a `\documentclass` file), with build status, last build time and its files. Click to open; right-click for Open PDF, Recompile, Reveal, New file.
+- Project folders get a small Σ marker in the file explorer. Optional settings: hide project folders from the file explorer entirely, and open projects in their own LaTeX window.
 - Multi-file projects: use `% !TEX root = ../main.tex` in sub-files. Otherwise the root is found by locating a `\documentclass` file that includes the current one.
 - Auto-compile after a short pause in typing (configurable). Cmd/Ctrl+S saves and compiles; Cmd/Ctrl+Enter recompiles.
 - Right-click the Recompile button for an auto-compile on/off toggle (a small orange dot on the button means auto-compile is off).
