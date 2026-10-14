@@ -355,3 +355,105 @@ body.texpane-focus .workspace-ribbon.mod-right { display: none; }
 .tp-projects-empty-buttons .tp-btn-icon { display: inline-flex; }
 .tp-projects-empty-buttons svg { width: 15px; height: 15px; }
 .tp-projects-footer { flex: 0 0 auto; padding: 6px var(--size-4-3); border-top: 1px solid var(--background-modifier-border); color: var(--text-faint); font-size: var(--font-ui-smaller); }
+
+/* ------------------------------------------------------------------ Lean integration (LeanPane) */
+/* Status colours follow leanblueprint: green = formalized, dark green/teal = already in Mathlib, blue = ready,
+   orange = not ready or sorry. Everything comes from Obsidian's colour variables. */
+.tp-lean-tip { white-space: pre-wrap; max-width: 420px; text-align: left; }
+.tp-lean-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px 0 6px;
+  border-radius: var(--radius-s);
+  background: var(--background-modifier-hover);
+  cursor: pointer;
+  line-height: 1.5;
+  font-family: var(--font-interface);
+  font-size: 0.92em;
+}
+.tp-lean-chip-icon { display: inline-flex; color: var(--text-muted); }
+.tp-lean-chip-icon svg { width: 12px; height: 12px; }
+.tp-lean-name {
+  padding: 0 5px;
+  margin: 1px 0;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  font-size: 0.92em;
+}
+.tp-lean-chip:hover .tp-lean-name { text-decoration: underline; }
+.tp-lean-name.is-neutral { color: var(--text-muted); border-style: dashed; }
+.tp-lean-name.is-proved { color: var(--color-green); border-color: var(--color-green); background: rgba(var(--color-green-rgb), 0.14); }
+.tp-lean-name.is-mathlib { color: var(--color-cyan); border-color: var(--color-cyan); background: rgba(var(--color-cyan-rgb), 0.14); }
+.tp-lean-name.is-sorry-deps { color: var(--color-yellow); border-color: var(--color-yellow); background: rgba(var(--color-yellow-rgb), 0.14); }
+.tp-lean-name.is-stated { color: var(--color-orange); border-color: var(--color-orange); background: rgba(var(--color-orange-rgb), 0.14); }
+.tp-lean-name.is-error { color: var(--color-red); border-color: var(--color-red); background: rgba(var(--color-red-rgb), 0.14); }
+.tp-lean-name.is-missing { color: var(--color-red); border-color: var(--color-red); border-style: dashed; }
+.tp-lean-name.is-unknown { color: var(--text-faint); border-style: dashed; }
+.tp-lean-name.is-none { color: var(--text-muted); border-style: dashed; }
+
+/* quick-fix buttons in the log drawer */
+.tp-log-fixes { display: flex; flex: 0 0 auto; gap: var(--size-4-1); margin-left: auto; }
+.tp-log-fix { height: 22px; padding: 0 8px; font-size: var(--font-ui-smaller); }
+
+/* blueprint progress panel */
+.tp-bp.view-content { padding: 0; display: flex; flex-direction: column; overflow: hidden; font-size: var(--font-ui-small); }
+.tp-bp-head { flex: 0 0 auto; padding: var(--size-4-2) var(--size-4-3); border-bottom: 1px solid var(--background-modifier-border); display: flex; flex-direction: column; gap: var(--size-4-2); }
+.tp-bp-bar { display: flex; align-items: center; gap: var(--size-2-2); }
+.tp-bp-title { font-weight: var(--font-semibold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tp-bp-btn.is-spinning svg { animation: tp-spin 1s linear infinite; color: var(--interactive-accent); }
+.tp-bp-progress { display: grid; grid-template-columns: 1fr auto; column-gap: var(--size-4-3); row-gap: 2px; align-items: center; }
+.tp-bp-track { grid-column: 1 / -1; display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--background-modifier-border); }
+.tp-bp-seg.is-proved { background: var(--color-green); }
+.tp-bp-seg.is-mathlib { background: var(--color-cyan); }
+.tp-bp-seg.is-sorry-deps { background: var(--color-yellow); }
+.tp-bp-seg.is-stated { background: var(--color-orange); }
+.tp-bp-seg.is-error { background: var(--color-red); }
+.tp-bp-total { font-weight: var(--font-semibold); font-variant-numeric: tabular-nums; }
+.tp-bp-sub { color: var(--text-muted); text-align: right; font-size: var(--font-ui-smaller); }
+.tp-bp-filters { display: flex; flex-wrap: wrap; gap: 2px; }
+.tp-bp-filter { padding: 2px var(--size-4-2); border-radius: var(--radius-s); color: var(--text-muted); cursor: pointer; font-variant-numeric: tabular-nums; }
+.tp-bp-filter:hover { background: var(--background-modifier-hover); color: var(--text-normal); }
+.tp-bp-filter.is-active { background: var(--background-modifier-hover); color: var(--text-normal); font-weight: var(--font-semibold); }
+.tp-bp-legend { display: flex; flex-wrap: wrap; gap: 2px var(--size-4-3); color: var(--text-muted); font-size: var(--font-ui-smaller); }
+.tp-bp-legend-item { display: inline-flex; align-items: center; gap: 4px; }
+.tp-bp-swatch { display: inline-block; flex: 0 0 auto; width: 10px; height: 10px; border-radius: 3px; border: 1.5px solid var(--background-modifier-border-hover); background: var(--background-secondary); }
+.tp-bp-swatch.is-proved { background: rgba(var(--color-green-rgb), 0.35); border-color: var(--color-green); }
+.tp-bp-swatch.is-mathlib { background: rgba(var(--color-cyan-rgb), 0.35); border-color: var(--color-cyan); }
+.tp-bp-swatch.is-sorry-deps { background: rgba(var(--color-yellow-rgb), 0.35); border-color: var(--color-yellow); }
+.tp-bp-swatch.is-stated { background: rgba(var(--color-orange-rgb), 0.35); border-color: var(--color-orange); }
+.tp-bp-swatch.is-error { background: rgba(var(--color-red-rgb), 0.35); border-color: var(--color-red); }
+.tp-bp-swatch.is-missing { background: transparent; border-color: var(--color-red); border-style: dashed; }
+.tp-bp-swatch.is-unknown, .tp-bp-swatch.is-none { background: transparent; border-style: dashed; }
+.tp-bp-swatch.is-ring-ready { background: transparent; border-color: var(--interactive-accent); }
+.tp-bp-swatch.is-ring-blocked { background: transparent; border-color: var(--text-muted); border-style: dotted; }
+.tp-bp-body { flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; flex-direction: column; }
+.tp-bp-note { padding: var(--size-4-4); color: var(--text-muted); }
+.tp-bp-scroll { flex: 1 1 auto; overflow: auto; }
+.tp-bp-svg { display: block; }
+.tp-bp-edge { fill: none; stroke: var(--text-faint); stroke-width: 1.2; opacity: 0.7; }
+.tp-bp-edge.is-back { stroke-dasharray: 3 3; }
+.tp-bp-edge.is-dim { opacity: 0.12; }
+.tp-bp-edge.is-hot { stroke: var(--interactive-accent); stroke-width: 2; opacity: 1; }
+.tp-bp-arrowhead { fill: var(--text-faint); }
+.tp-bp-node { cursor: pointer; outline: none; }
+.tp-bp-node.is-dim { opacity: 0.22; }
+.tp-bp-box { fill: var(--background-secondary); stroke: var(--background-modifier-border-hover); stroke-width: 1.5; }
+.tp-bp-label { fill: var(--text-normal); font-family: var(--font-interface); font-size: 12px; pointer-events: none; }
+.tp-bp-node.is-proved .tp-bp-box { fill: rgba(var(--color-green-rgb), 0.28); stroke: var(--color-green); }
+.tp-bp-node.is-mathlib .tp-bp-box { fill: rgba(var(--color-cyan-rgb), 0.28); stroke: var(--color-cyan); }
+.tp-bp-node.is-sorry-deps .tp-bp-box { fill: rgba(var(--color-yellow-rgb), 0.28); stroke: var(--color-yellow); }
+.tp-bp-node.is-stated .tp-bp-box { fill: rgba(var(--color-orange-rgb), 0.28); stroke: var(--color-orange); }
+.tp-bp-node.is-error .tp-bp-box { fill: rgba(var(--color-red-rgb), 0.28); stroke: var(--color-red); }
+.tp-bp-node.is-missing .tp-bp-box { stroke: var(--color-red); stroke-dasharray: 4 3; }
+.tp-bp-node.is-unknown .tp-bp-box, .tp-bp-node.is-none .tp-bp-box { stroke-dasharray: 4 3; }
+/* readiness is drawn on the outline (like leanblueprint's borders): accent = ready to prove, dotted = blocked */
+.tp-bp-node.is-ready .tp-bp-box { stroke: var(--interactive-accent); stroke-width: 2.5; stroke-dasharray: none; }
+.tp-bp-node.is-blocked .tp-bp-box { stroke-dasharray: 2 3; }
+.tp-bp-node:hover .tp-bp-box, .tp-bp-node:focus-visible .tp-bp-box { stroke-width: 3; }
+.tp-bp-list { padding: var(--size-4-1) var(--size-4-2); }
+.tp-bp-row { gap: var(--size-4-2); }
+.tp-bp-row .tp-bp-swatch { margin-top: 2px; }
+.tp-bp-row-env { color: var(--text-muted); }

@@ -48,3 +48,15 @@ Prerequisites: MacTeX or BasicTeX with latexmk, Obsidian 1.8+, a scratch vault. 
 4. New LaTeX project / file commands create from templates. Clean build files removes the build folder. Reveal PDF opens Finder.
 5. Close a file mid-build and quit Obsidian: no stray `latexmk`/`pdflatex` processes (`pgrep -fl latexmk`).
 6. `release/` holds exactly main.js, manifest.json, styles.css.
+
+## M7 Lean integration (needs LeanPane 0.1.0 and a Lean project; untested in automated runs)
+Setup: a vault with a Lean project (`lake new demo`) and a blueprint `.tex` next to it (e.g. `demo/blueprint/src/content.tex` with a root `print.tex`), both plugins enabled.
+1. Without LeanPane (disable it): `\lean{X}` chips are grey, hover says "LeanPane isn't installed"; the commands "Open blueprint progress", "Formalize this" and the Settings section "Lean integration" are absent; no new warnings in the log drawer. Compile a blueprint that uses `\lean`, `\leanok`, `\uses` without defining them: it builds with no "Undefined control sequence".
+2. Enable LeanPane: chips recolour without reloading (api-ready event). Disable it again: chips go grey, warnings disappear.
+3. Chips: a proved theorem is green, `sorry` orange, a theorem using a `sorry` lemma yellow, a Mathlib name cyan, a typo red dashed. Hover shows status and signature. Cmd+click opens the declaration in LeanPane; Alt+Cmd+click in a new tab.
+4. Completion: type `\lean{` then a few letters; names from the Lean project appear. After a comma the second name completes too.
+5. Mismatches: add `\leanok` to the proof of a `sorry` theorem: a warning with "Remove \leanok" appears on that line and in the log drawer; the quick fix removes it. Prove it in Lean (LeanPane): "Add \leanok" appears. Turn on "Sync \leanok automatically": both happen by themselves and settle (no flip-flopping while you type in Lean).
+6. "Open blueprint progress": graph appears right of the active tab; totals match the colours; filters dim nodes; click jumps to LaTeX, double-click opens Lean; narrow the pane below ~480 px: list view; header button switches. Edit `\uses` in the LaTeX: graph updates within a second.
+7. "Formalize this": cursor inside `\begin{lemma}\label{lem:x}…`: name prompt defaults to `lem_x`, pick or create a `.lean` file, the stub appears in LeanPane with the statement as docstring, `\lean{lem_x}` is inserted after the `\label` and the chip turns orange.
+8. `% !LEAN project = <folder>` in the root file overrides the project; a wrong folder gives grey chips with "No Lean project found".
+9. From LeanPane: "Jump to blueprint" opens the TeX file at the right line; "Add to blueprint" appends an entry before `\end{document}`.

@@ -1,5 +1,6 @@
 import { autocompletion, pickedCompletion, snippet, snippetCompletion, startCompletion, type Completion, type CompletionContext, type CompletionResult, type CompletionSource } from "@codemirror/autocomplete";
 import type { EditorView } from "@codemirror/view";
+import type { DeclSummary } from "../integration/api-types";
 import type { BibEntry, LabelEntry } from "../types";
 import data from "./data/commands.json";
 
@@ -24,6 +25,11 @@ export interface CompletionHost {
   notes(): NoteSuggestion[];
   headingsOf(note: string): string[];
   blocksOf(note: string): string[];
+  /**
+   * Lean declarations for \lean{..}; absent or null when LeanPane is not there.
+   * `complete` false: the list was cut down to names starting with `typed`.
+   */
+  lean?: { declarations(typed: string): Promise<{ items: DeclSummary[]; complete: boolean }> | null };
 }
 
 const items = data as DataItem[];
@@ -122,6 +128,37 @@ function lastSegmentFrom(ctx: CompletionContext, m: { from: number; text: string
   return m.from + m.text.length - (inner.length - lead);
 }
 
+const LEAN_ARG_RE = /\\lean(?![A-Za-z@])\s*\{[^}\n]*$/;
+const LEAN_STOP = /[,}\s]/;
+
+/** Completion inside \lean{ ... }: Lean declarations, for the comma-separated segment being typed. */
+export function makeLeanSource(lean: NonNullable<CompletionHost["lean"]>): CompletionSource {
+  return async (ctx) => {
+    const m = ctx.matchBefore(LEAN_ARG_RE);
+    if (!m) return null;
+    const inner = m.text.slice(m.text.indexOf("{") + 1);
+    const typed = inner.replace(/^.*,\s*/s, "");
+    const from = m.to - typed.length;
+    if (!ctx.explicit && typed.length === 0) return null;
+    const res = lean.declarations(typed);
+    if (!res) return null;
+    const { items, complete } = await res;
+    if (ctx.aborted) return null;
+    const seen = new Set<string>();
+    const options: Completion[] = [];
+    for (const d of items) {
+      if (seen.has(d.name)) continue;
+      seen.add(d.name);
+      options.push({ label: d.name, type: d.kind === "def" || d.kind === "definition" ? "function" : d.kind === "structure" || d.kind === "inductive" || d.kind === "class" ? "class" : "variable", detail: d.kind, info: `${d.file}:${d.line}` });
+    }
+    return {
+      from,
+      options,
+      validFor: complete ? (text: string) => !LEAN_STOP.test(text) : (text: string) => text.startsWith(typed) && !LEAN_STOP.test(text),
+    };
+  };
+}
+
 export function makeSources(host: CompletionHost): CompletionSource[] {
   const refSource: CompletionSource = (ctx) => {
     const m = ctx.matchBefore(new RegExp(REF_RE.source));
@@ -199,7 +236,9 @@ export function makeSources(host: CompletionHost): CompletionSource[] {
     }));
     return { from: qStart, options, validFor: /^[^#}\]]*$/ };
   };
-  return [obsidianSource, refSource, citeSource, envSource, commandSource];
+  const sources = [obsidianSource, refSource, citeSource, envSource, commandSource];
+  if (host.lean) sources.unshift(makeLeanSource(host.lean));
+  return sources;
 }
 
 export function latexAutocomplete(host: CompletionHost) {

@@ -15,9 +15,19 @@ export interface Diagnostic {
   message: string;
   /** Extra context (e.g. the `l.<n> ...` line) */
   raw?: string;
-  source?: "tex" | "bibtex" | "biber" | "embed" | "system";
+  source?: "tex" | "bibtex" | "biber" | "embed" | "system" | "lean";
   /** Set when the diagnostic lies inside an embedded vault note. */
   note?: { path: string; line?: number };
+  /** 0-based column range on `line` to underline (default: the whole line) */
+  col?: number;
+  endCol?: number;
+  /** Quick fixes (Lean integration): shown as buttons in the log drawer and in the editor's lint tooltip */
+  fixes?: DiagnosticFix[];
+}
+
+export interface DiagnosticFix {
+  label: string;
+  run(): void | Promise<void>;
 }
 
 export interface ProjectInfo {

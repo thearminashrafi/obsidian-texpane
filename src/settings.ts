@@ -30,6 +30,8 @@ export interface TexPaneSettings {
   markProjectsInExplorer: boolean;
   hideProjectsInExplorer: boolean;
   openProjectsInWindow: boolean;
+  /** Lean integration: add or remove \leanok automatically when Lean disagrees */
+  syncLeanok: boolean;
   /** per project (root path relative to vault): divider ratio */
   splitRatios: Record<string, number>;
 }
@@ -58,6 +60,7 @@ export const DEFAULT_SETTINGS: TexPaneSettings = {
   markProjectsInExplorer: true,
   hideProjectsInExplorer: false,
   openProjectsInWindow: false,
+  syncLeanok: false,
   splitRatios: {},
 };
 
@@ -297,6 +300,22 @@ export class TexPaneSettingTab extends PluginSettingTab {
           await save();
         }),
       );
+
+    // Only while LeanPane is there: nothing about Lean shows up otherwise.
+    if (this.plugin.lean.available()) {
+      new Setting(containerEl).setName("Lean integration (LeanPane)").setHeading();
+      new Setting(containerEl)
+        .setName("Sync \\leanok automatically")
+        .setDesc("Add \\leanok when Lean proves a declaration, and remove it when the proof is sorry. Off: TeXPane only warns and offers a quick fix.")
+        .addToggle((t) =>
+          t.setValue(s.syncLeanok).onChange(async (v) => {
+            s.syncLeanok = v;
+            await save();
+            this.plugin.lean.recheck();
+            this.plugin.lean.syncNow();
+          }),
+        );
+    }
 
     new Setting(containerEl).setName("File types").setHeading();
     new Setting(containerEl)

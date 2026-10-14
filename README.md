@@ -48,6 +48,47 @@ From source: `npm install && npm run build` (outputs to `release/`). `npm run de
 
 Notes are converted to LaTeX at build time (headings, emphasis, lists, links, footnotes, math, GFM tables, images, code, nested `![[embeds]]`). Embed cycles and depth over 5 produce warnings, not hangs. Diagnostics from embedded content point at the `\obsidian` line and the note line. Typing `[[` (or `\obsidian{`) lists vault notes; picking one writes `\obsidian{Note}`. `#` after a note name lists its headings. Export: "Export flattened project" writes a plain `.tex` with embeds inlined that compiles with ordinary latexmk.
 
+## Lean integration (with LeanPane)
+
+TeXPane works with [LeanPane](https://github.com/thearminashrafi/obsidian-leanpane), a separate plugin that edits `.lean` files with live goals from your installed Lean. Write the natural-language proof in LaTeX, blueprint-style, and keep it in step with the Lean code. Nothing here needs configuration, nothing changes while LeanPane is not installed or not enabled, and TeXPane never starts Lean itself. The two plugins find each other through a small versioned API (version 1).
+
+**Blueprint macros.** Use the [leanblueprint](https://github.com/PatrickMassot/leanblueprint) vocabulary in your `.tex` files: `\lean{Name, Other.name}` (the Lean declarations), `\leanok` (formalized; in a theorem's `proof` it means the proof is done), `\uses{lbl1, lbl2}` (dependencies), `\mathlibok`, `\notready`, `\proves{lbl}`, `\discussion{n}`. If your document uses these macros without defining them, the build supplies empty definitions (`\providecommand` inside `\AtBeginDocument`, on the `\documentclass` line, so line numbers and SyncTeX are unaffected), so a blueprint compiles with plain pdfLaTeX. Definitions of your own, from the preamble, an `\input` file or the `blueprint` package, always win. Documents that do not use the macros compile exactly as before.
+
+**Finding the Lean project.** TeXPane asks LeanPane, which walks up from the root `.tex` file to the nearest `lakefile.toml` / `lakefile.lean`. To point somewhere else, put a magic comment in the first lines of the root file, relative to that file:
+
+```
+% !LEAN project = ../..
+```
+
+**`\lean{Name}` chips.** In the editor each name in `\lean{...}` is shown as a coloured chip (click the chip to edit the raw text). Colours follow leanblueprint and use Obsidian's theme colours:
+
+| Colour | Meaning |
+| --- | --- |
+| green | proved (no `sorry`, including everything it depends on) |
+| cyan | the declaration lives in Mathlib |
+| yellow | proved, but something it uses still has `sorry` |
+| orange | stated, proof is `sorry` |
+| red | Lean reports an error (dashed red: no declaration with this name) |
+| grey, dashed | no Lean answer: status unknown, no Lean project found, or LeanPane not installed |
+
+Hover for the status and the Lean type signature. Cmd/Ctrl+click opens the declaration in LeanPane. Without LeanPane the chips are grey and the hover says so.
+
+**Completion.** Inside `\lean{` the editor offers the declarations LeanPane lists for the project; comma-separated lists work (the name after the last comma is completed).
+
+**`\leanok` checks.** Lean, not hand-typed `\leanok`, is the source of truth. TeXPane warns (editor squiggle and log drawer) when:
+
+- a proof or definition has `\leanok` but Lean says it is not proved: quick fix "Remove \leanok";
+- Lean proves the declaration but the proof (or definition) has no `\leanok`: quick fix "Add \leanok";
+- `\lean{X}` names a declaration Lean does not have.
+
+Quick fixes are in the squiggle's tooltip and as buttons in the log drawer. "Update \leanok from Lean" applies all of them for the project at once. Settings, "Lean integration", has **Sync \leanok automatically** (off by default): when on, TeXPane adds `\leanok` where Lean proves a declaration and removes it where the proof is `sorry` (not on Lean errors, which are usually a half-typed proof), without asking.
+
+**Blueprint progress** (command "Open blueprint progress", also in the tab's menu): the dependency graph of the project's theorems and definitions, from `\uses` in statements and proofs, laid out left to right (what a result needs is on its left). Fill colour is the Lean status (same legend as the chips; "not formalized" is dashed); the outline says whether a result is *ready to prove* (accent outline: not proved, everything it uses is proved) or *blocked* (dotted outline). Above the graph: the totals ("18 of 31 proved"), a progress bar and the filters All / Ready to prove / Blocked / Not formalized, which dim everything else (the list shows only matches). Click a node to jump to its LaTeX, double-click to open the Lean declaration. In a narrow pane the panel shows a list instead of a graph; the header button switches. The panel follows the LaTeX project you are editing.
+
+**Formalize this** (command, also in the tab's menu). With the cursor in a theorem-like environment that has a `\label`: pick a Lean name (default from the label: `lem:bound` becomes `lem_bound`), pick or create a `.lean` file in the project, and LeanPane adds `theorem lem_bound : sorry := by sorry` with the LaTeX statement as its docstring. TeXPane then inserts `\lean{lem_bound}` after the `\label`.
+
+**API.** TeXPane exposes `app.plugins.plugins["texpane"].api` (version 1) with `blueprintRefs(leanName)`, `openLocation(file, line)`, `addBlueprintEntry(...)` and `onBlueprintChanged(cb)`; it triggers `texpane:api-ready` on the workspace after load and `texpane:api-unload` on unload. LeanPane uses it for "Jump to blueprint" and "Add to blueprint".
+
 ## Shortcuts (all rebindable under Hotkeys)
 
 | Action | Default |
@@ -62,6 +103,7 @@ Notes are converted to LaTeX at build time (headings, emphasis, lists, links, fo
 | Embed note | none (assign one under Hotkeys) |
 | Bold / italic | Cmd/Ctrl+B / I |
 | Toggle comment | Cmd/Ctrl+/ |
+| Open blueprint progress, Formalize this, Update \leanok from Lean | none (only listed while LeanPane is enabled) |
 
 ## Settings
 
@@ -81,6 +123,7 @@ Obsidian launched from the Dock does not inherit your shell PATH, so `latexmk` m
 - PDF dark mode is a CSS inversion and may look off for coloured figures.
 - Embedded Markdown: callouts, Dataview and other plugin syntax are not converted (passed through as text or dropped with a warning).
 - Shell escape is off by default; enable it only for documents you trust.
+- Lean integration: the blueprint graph is drawn with a small built-in layered layout (no crossing-free guarantee on very large blueprints). Proofs are attached to the previous statement in the same file, or via `\\proves{label}`. `\\input`ed files are read after the file that includes them, which only matters if a proof and its statement are split across an `\\input` boundary.
 - The Obsidian-facing UI could not be exercised in an automated environment; see `docs/MANUAL_TEST.md`.
 
 ## License

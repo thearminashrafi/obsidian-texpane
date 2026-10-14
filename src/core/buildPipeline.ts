@@ -3,6 +3,7 @@ import * as path from "node:path";
 import type { BuildMapping, BuildRequest, BuildResult, Diagnostic, EmbedRef, NoteProvider } from "../types";
 import { EmbedBuilder } from "./embeds";
 import { scanEmbeds, substituteEmbeds } from "./embedScanner";
+import { blueprintFallbackMacros } from "./blueprintMacros";
 import { detectPackages, extractInputs } from "./indexers";
 import { latexmkArgs, runLatexmk, type RunnerResult } from "./latexmkRunner";
 import { parseBlg, parseLog } from "./logParser";
@@ -108,8 +109,9 @@ export function documentClassEnd(text: string): number {
   return -1;
 }
 
-export function supportMacros(opts: { graphics: boolean; links: boolean; hasGraphicx: boolean }): string {
+export function supportMacros(opts: { graphics: boolean; links: boolean; hasGraphicx: boolean; blueprint?: string }): string {
   let s = "";
+  if (opts.blueprint) s += opts.blueprint;
   if (opts.graphics && !opts.hasGraphicx) s += "\\usepackage{graphicx}";
   if (opts.links) s += "\\AtBeginDocument{\\providecommand{\\href}[2]{#2}\\providecommand{\\url}[1]{\\texttt{\\detokenize{#1}}}}";
   return s;
@@ -146,6 +148,10 @@ export async function runBuild(req: BuildRequest, deps: BuildDeps): Promise<Buil
   const pkgs = new Set<string>();
   for (const text of files.values()) detectPackages(text).forEach((p) => pkgs.add(p));
 
+  // leanblueprint macros (\lean, \leanok, \uses, ...) that the document uses but does not define get no-op fallbacks;
+  // that needs the shadow copy of the root file, even when no note is embedded.
+  const blueprint = blueprintFallbackMacros(files.values(), pkgs);
+
   let compileRoot = project.rootAbsPath;
   const env = { ...deps.env };
 
@@ -155,7 +161,7 @@ export async function runBuild(req: BuildRequest, deps: BuildDeps): Promise<Buil
     if (rel && !rel.startsWith("..") && !path.isAbsolute(rel)) await fsp.mkdir(path.join(project.buildDir, rel), { recursive: true });
   }
 
-  if (total > 0) {
+  if (total > 0 || blueprint) {
     const shadowDir = path.join(project.buildDir, "shadow");
     const embedsDir = path.join(project.buildDir, "embeds");
     const assetsDir = path.join(embedsDir, "assets");
@@ -228,7 +234,7 @@ export async function runBuild(req: BuildRequest, deps: BuildDeps): Promise<Buil
 
     // support macros on the \documentclass line of the root
     const rootDest = path.join(shadowDir, path.relative(project.cwd, project.rootAbsPath));
-    const macros = supportMacros({ graphics: usesGraphics, links: usesLinks, hasGraphicx: pkgs.has("graphicx") });
+    const macros = supportMacros({ graphics: usesGraphics, links: usesLinks, hasGraphicx: pkgs.has("graphicx"), blueprint });
     if (macros) {
       const rt = (await readOrNull(rootDest)) ?? "";
       const end = documentClassEnd(rt);

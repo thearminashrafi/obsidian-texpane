@@ -47,13 +47,13 @@ export class OutlineView extends ItemView {
         this.unlisten = () => s.listeners.delete(l);
       }
     }
-    this.render();
+    this.drawOutline();
   }
   schedule() {
     if (this.timer) window.clearTimeout(this.timer);
-    this.timer = window.setTimeout(() => this.render(), 300);
+    this.timer = window.setTimeout(() => this.drawOutline(), 300);
   }
-  private render() {
+  private drawOutline() {
     const el = this.contentEl;
     el.empty();
     const v = this.bound;

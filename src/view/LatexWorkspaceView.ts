@@ -19,6 +19,7 @@ import { latexAutocomplete } from "../editor/completion";
 import { envAutoClose } from "../editor/envAutoClose";
 import { applyDiagnostics, diagnosticsGutter } from "../editor/diagnostics";
 import { embedChips, refreshChips } from "../editor/embedChips";
+import { leanChips, refreshLeanChips } from "../editor/leanChips";
 import { bold, italic, toggleComment } from "../editor/editing";
 import { flashLine, lineFlashField } from "../editor/lineFlash";
 import { extractLabels } from "../core/indexers";
@@ -54,6 +55,10 @@ export class LatexWorkspaceView extends TextFileView {
   private layoutBtn!: HTMLElement;
   private syncBtn!: HTMLElement;
   private lastDiags: Diagnostic[] = [];
+  /** Problems from the Lean integration (\leanok vs Lean); empty without LeanPane */
+  private leanDiags: Diagnostic[] = [];
+  private lastRaw = "";
+  private leanSig = "[]";
   private pendingReveal: { line: number; col?: number } | null = null;
   private pdfLoadedFor = "";
   private bindToken = 0;
@@ -133,6 +138,7 @@ export class LatexWorkspaceView extends TextFileView {
   async onClose() {
     if (this.ratioSaveTimer) window.clearTimeout(this.ratioSaveTimer);
     this.unbindSession();
+    this.plugin.lean?.detachView(this);
     this.session = null;
     this.resizeObs?.disconnect();
     this.pdf?.dispose();
@@ -152,7 +158,7 @@ export class LatexWorkspaceView extends TextFileView {
     if (!this.editor) return;
     if (clear) {
       this.editor.setState(this.makeState(data));
-      if (this.lastDiags.length) this.applyEditorDiagnostics();
+      if (this.lastDiags.length || this.leanDiags.length) this.applyEditorDiagnostics();
     } else if (data !== this.editor.state.doc.toString()) {
       const sel = this.editor.state.selection.main;
       this.editor.dispatch({ changes: { from: 0, to: this.editor.state.doc.length, insert: data }, selection: { anchor: Math.min(sel.head, data.length) }, annotations: [External.of(true), Transaction.addToHistory.of(false)] });
@@ -248,6 +254,10 @@ export class LatexWorkspaceView extends TextFileView {
           }),
       );
     }
+    if (this.plugin.lean.available()) {
+      menu.addItem((i) => i.setTitle("Open blueprint progress").setIcon("git-fork").onClick(() => void this.plugin.openBlueprint()));
+      menu.addItem((i) => i.setTitle("Formalize this (create Lean declaration)").setIcon("square-function").onClick(() => void this.plugin.lean.formalize(this)));
+    }
     menu.addItem((i) => i.setTitle("Export flattened project…").setIcon("package").onClick(() => void this.plugin.exportFlattened(this)));
     menu.addItem((i) => i.setTitle("Clean build files").setIcon("trash-2").onClick(() => void this.plugin.cleanBuild(this)));
     menu.addItem((i) => i.setTitle(Platform.isMacOS ? "Reveal PDF in Finder" : "Reveal PDF in file manager").setIcon("folder-open").onClick(() => this.plugin.revealPdf(this)));
@@ -259,6 +269,7 @@ export class LatexWorkspaceView extends TextFileView {
     const view = this;
     return {
       completion: {
+        lean: view.plugin.lean.completionHost(view),
         labels: () => {
           const here = view.absPath();
           const idx = view.session?.index.labels().filter((l) => l.file !== here) ?? [];
@@ -326,12 +337,41 @@ export class LatexWorkspaceView extends TextFileView {
         this.onUserEdit();
       }),
     ];
-    if (ext === "tex") extensions.push(embedChips(host.chips));
+    if (ext === "tex") extensions.push(embedChips(host.chips), leanChips(this.plugin.lean.chipHost(this)));
     return EditorState.create({ doc, extensions });
   }
 
   private onUserEdit() {
     this.session?.schedule();
+    this.plugin.lean.viewEdited(this);
+  }
+
+  /** Lean integration: \leanok problems for this project (replaces the previous set). */
+  setLeanDiagnostics(diags: Diagnostic[]) {
+    const sig = JSON.stringify(diags.map((d) => [d.file, d.line, d.col, d.endCol, d.message, d.fixes?.map((f) => f.label)]));
+    if (sig === this.leanSig) return;
+    this.leanSig = sig;
+    this.leanDiags = diags;
+    this.updateProblems();
+  }
+
+  /** Redraw \lean{..} chips (status changed, LeanPane appeared or went away). */
+  refreshLean() {
+    try {
+      this.editor?.dispatch({ effects: refreshLeanChips.of(null) });
+    } catch {
+      /* destroyed */
+    }
+  }
+
+  private updateProblems() {
+    this.log.set([...this.lastDiags, ...this.leanDiags], this.lastRaw);
+    this.applyEditorDiagnostics();
+    const counts = this.log.counts();
+    this.logBtn?.setAttr("data-count", String(counts.error + counts.warning));
+    this.logBtn?.toggleClass("has-errors", counts.error > 0);
+    this.logBtn?.toggleClass("has-warnings", counts.error === 0 && counts.warning > 0);
+    this.logBtn?.setAttr("aria-label", `Log: ${counts.error} errors, ${counts.warning} warnings`);
   }
 
   private refreshChipsNow() {
@@ -527,6 +567,7 @@ export class LatexWorkspaceView extends TextFileView {
       if (this.plugin.settings.autoCompile && !session.last) void session.compileNow().catch(() => undefined);
     }
     this.plugin.updateStatusBar();
+    this.plugin.lean.attachView(this);
   }
 
   private unbindSession() {
@@ -609,13 +650,9 @@ export class LatexWorkspaceView extends TextFileView {
 
   private onResult(r: BuildResult, fresh: boolean) {
     this.lastDiags = r.diagnostics;
-    this.log.set(r.diagnostics, r.rawLog || r.processOutput);
-    this.applyEditorDiagnostics();
+    this.lastRaw = r.rawLog || r.processOutput;
+    this.updateProblems();
     const counts = this.log.counts();
-    this.logBtn?.setAttr("data-count", String(counts.error + counts.warning));
-    this.logBtn?.toggleClass("has-errors", counts.error > 0);
-    this.logBtn?.toggleClass("has-warnings", counts.error === 0 && counts.warning > 0);
-    this.logBtn?.setAttr("aria-label", `Log: ${counts.error} errors, ${counts.warning} warnings`);
     if (r.status === "no-toolchain") {
       this.showSetupCard();
       return;
@@ -632,7 +669,7 @@ export class LatexWorkspaceView extends TextFileView {
   private applyEditorDiagnostics() {
     if (!this.editor) return;
     const here = this.absPath();
-    applyDiagnostics(this.editor, this.lastDiags.filter((d) => d.file && path.resolve(d.file) === path.resolve(here)));
+    applyDiagnostics(this.editor, [...this.lastDiags, ...this.leanDiags].filter((d) => d.file && path.resolve(d.file) === path.resolve(here)));
   }
 
   private showNoPdfCard(text: string) {

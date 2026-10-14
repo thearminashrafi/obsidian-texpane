@@ -4,6 +4,9 @@ import * as path from "node:path";
 import { DEFAULT_SETTINGS, TexPaneSettingTab, type TexPaneSettings } from "./settings";
 import { LatexWorkspaceView, VIEW_TYPE } from "./view/LatexWorkspaceView";
 import { OUTLINE_TYPE, OutlineView } from "./view/OutlineView";
+import { BLUEPRINT_TYPE, BlueprintView } from "./view/BlueprintView";
+import { LeanIntegration } from "./integration/leanIntegration";
+import { TEXPANE_READY_EVENT, TEXPANE_UNLOAD_EVENT, type TeXPaneApiV1 } from "./integration/api-types";
 import { PROJECTS_TYPE, ProjectsView } from "./view/ProjectsView";
 import { buildProjectIndex, type LatexProject } from "./core/projectIndex";
 import { explorerCss } from "./core/explorerCss";
@@ -38,14 +41,21 @@ export default class TexPanePlugin extends Plugin {
   /** Last finished build per main file (vault path); outlives pruned sessions. */
   private lastBuilds = new Map<string, { status: string; at: number }>();
   private windowLeaf: WorkspaceLeaf | null = null;
+  /** Lean integration (LeanPane); inert while LeanPane is absent */
+  lean!: LeanIntegration;
+  /** Cross-plugin API v1, read by LeanPane through app.plugins.plugins["texpane"].api */
+  api!: TeXPaneApiV1;
 
   async onload() {
     await this.loadSettings();
     this.notes = new ObsidianNotes(this.app);
+    this.lean = new LeanIntegration(this);
+    this.api = this.lean.api;
 
     this.registerView(VIEW_TYPE, (leaf) => new LatexWorkspaceView(leaf, this));
     this.registerView(OUTLINE_TYPE, (leaf) => new OutlineView(leaf, this));
     this.registerView(PROJECTS_TYPE, (leaf) => new ProjectsView(leaf, this));
+    this.registerView(BLUEPRINT_TYPE, (leaf) => new BlueprintView(leaf, this));
     this.addRibbonIcon("sigma", "LaTeX projects", () => void this.openProjects());
     this.tryRegister(["tex"]);
     if (this.settings.registerAuxTypes) for (const ext of ["bib", "sty", "cls"]) this.tryRegister([ext]);
@@ -70,6 +80,8 @@ export default class TexPanePlugin extends Plugin {
     this.registerEvent(this.app.workspace.on("layout-change", () => this.updateStatusBar()));
 
     this.app.workspace.onLayoutReady(() => {
+      this.lean.start();
+      (this.app.workspace as unknown as { trigger(name: string): void }).trigger(TEXPANE_READY_EVENT);
       this.registerProjectIndexEvents();
       void this.rebuildProjects();
       void this.ensureToolchain().then(() => {
@@ -79,6 +91,8 @@ export default class TexPanePlugin extends Plugin {
   }
 
   onunload() {
+    (this.app.workspace as unknown as { trigger(name: string): void }).trigger(TEXPANE_UNLOAD_EVENT);
+    this.lean?.dispose();
     if (this.pruneTimer) window.clearTimeout(this.pruneTimer);
     this.pruneTimer = null;
     if (this.indexTimer) window.clearTimeout(this.indexTimer);
@@ -186,6 +200,7 @@ export default class TexPanePlugin extends Plugin {
 
   private registerVaultEvents() {
     const kick = (f: TFile, oldPath?: string) => {
+      if (f.extension === "tex") this.lean.texChanged();
       const abs = path.join(this.notes.basePath(), ...f.path.split("/"));
       for (const s of this.sessions.values()) {
         const isNote = f.extension === "md" && (s.embeddedNotes.has(f.path) || (oldPath !== undefined && s.embeddedNotes.has(oldPath)));
@@ -262,6 +277,12 @@ export default class TexPanePlugin extends Plugin {
       if (!checking) fn(v);
       return true;
     };
+    const lean = (fn: (v: LatexWorkspaceView) => void) => (checking: boolean) => {
+      const v = this.app.workspace.getActiveViewOfType(LatexWorkspaceView);
+      if (!v || !this.lean.available()) return false;
+      if (!checking) fn(v);
+      return true;
+    };
     this.addCommand({ id: "recompile", name: "Recompile", icon: "refresh-cw", checkCallback: withView((v) => void v.recompile()) });
     // Third route for Mod+S (besides the editor keymap and the view scope); a 250 ms guard keeps one press to one compile.
     this.addCommand({
@@ -304,6 +325,19 @@ export default class TexPanePlugin extends Plugin {
     this.addCommand({ id: "new-project", name: "New LaTeX project", icon: "folder-plus", callback: () => void this.newProjectInHome() });
     this.addCommand({ id: "open-projects", name: "Open LaTeX projects", icon: "sigma", callback: () => void this.openProjects() });
     this.addCommand({ id: "new-file", name: "New LaTeX file", icon: "file-plus", callback: () => void this.newLatexFile(this.defaultFolder()) });
+    // Lean integration: these only exist while LeanPane is enabled
+    this.addCommand({
+      id: "open-blueprint",
+      name: "Open blueprint progress",
+      icon: "git-fork",
+      checkCallback: (checking) => {
+        if (!this.lean.available()) return false;
+        if (!checking) void this.openBlueprint();
+        return true;
+      },
+    });
+    this.addCommand({ id: "formalize", name: "Formalize this (create Lean declaration)", icon: "square-function", checkCallback: lean((v) => void this.lean.formalize(v)) });
+    this.addCommand({ id: "update-leanok", name: "Update \\leanok from Lean", icon: "check-check", checkCallback: lean((v) => void this.lean.fixAll(v)) });
     this.addCommand({ id: "open-outline", name: "Open LaTeX outline", icon: "list-tree", callback: () => void this.openOutline() });
     this.addCommand({
       id: "recheck-toolchain",
@@ -327,6 +361,13 @@ export default class TexPanePlugin extends Plugin {
     if (!leaf) return;
     if (!existing) await leaf.setViewState({ type: OUTLINE_TYPE, active: true });
     void this.app.workspace.revealLeaf(leaf);
+  }
+
+  async openBlueprint() {
+    const existing = this.app.workspace.getLeavesOfType(BLUEPRINT_TYPE)[0];
+    const leaf: WorkspaceLeaf = existing ?? this.app.workspace.getLeaf("split", "vertical");
+    if (!existing) await leaf.setViewState({ type: BLUEPRINT_TYPE, active: true });
+    await this.app.workspace.revealLeaf(leaf);
   }
 
   async openProjects() {

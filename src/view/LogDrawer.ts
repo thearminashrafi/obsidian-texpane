@@ -111,6 +111,16 @@ export class LogDrawer {
       inner.createSpan({ cls: "tp-log-msg", text: d.message });
       if (d.raw && d.severity === "error") inner.createDiv({ cls: "tp-log-ctx", text: d.raw });
       const loc = d.note ? `${d.note.path}${d.note.line ? ":" + d.note.line : ""}` : d.file ? `${this.cb.label(d.file)}${d.line ? ":" + d.line : ""}` : "";
+      if (d.fixes?.length) {
+        const fx = self.createDiv({ cls: "tp-log-fixes" });
+        for (const f of d.fixes) {
+          const b = fx.createEl("button", { cls: "tp-log-fix", text: f.label });
+          b.addEventListener("click", (e) => {
+            e.stopPropagation();
+            void Promise.resolve(f.run()).catch((err) => console.error("[TeXPane] quick fix failed", err));
+          });
+        }
+      }
       if (loc) self.createDiv({ cls: "tree-item-flair-outer" }).createSpan({ cls: "tree-item-flair", text: loc });
       self.addEventListener("click", () => this.cb.onSelect(d));
     }
