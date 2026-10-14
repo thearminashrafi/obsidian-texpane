@@ -133,9 +133,8 @@
 .tp-search {
   pointer-events: auto; display: flex; flex-direction: column; gap: 6px; padding: 6px 6px 6px 4px; font-family: var(--font-interface); font-size: var(--font-ui-small);
   background: var(--background-secondary); border: 1px solid var(--background-modifier-border); border-radius: var(--radius-l, 10px);
-  box-shadow: var(--shadow-s); animation: tp-search-in 0.12s ease-out;
+  box-shadow: var(--shadow-s);
 }
-@keyframes tp-search-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 .tp-search-row { display: flex; align-items: center; gap: 4px; }
 .tp-search-replace-row { display: none; margin-left: 26px; }
 .tp-search.has-replace .tp-search-replace-row { display: flex; }
@@ -159,7 +158,7 @@
 .tp-search-btn svg { width: 15px; height: 15px; }
 .tp-search-toggle { width: 22px; height: 20px; font-family: var(--font-monospace); font-size: 11px; font-weight: 600; }
 .tp-search-toggle.is-on { background: var(--interactive-accent); color: var(--text-on-accent); }
-.tp-search-expand svg { transition: transform 0.12s ease; }
+.tp-search-expand svg { transition: none; }
 .tp-search-expand.is-open svg { transform: rotate(90deg); }
 .tp-search-count { min-width: 56px; padding: 0 4px; text-align: center; color: var(--text-muted); font-size: var(--font-ui-smaller); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .tp-search-count.is-empty { color: var(--text-error); }

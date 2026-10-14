@@ -2,7 +2,7 @@ import { EditorView, runScopeHandlers, type Panel, type ViewUpdate } from "@code
 import { SearchQuery, closeSearchPanel, findNext, findPrevious, getSearchQuery, replaceAll, replaceNext, setSearchQuery } from "@codemirror/search";
 import { setIcon } from "obsidian";
 
-const MAX_COUNT = 2000;
+const MAX_COUNT = 500;
 
 /** Find/replace as a small floating card (Obsidian look), instead of CodeMirror's default bar. */
 export function createSearchPanel(view: EditorView): Panel {
