@@ -1,3 +1,4 @@
+import { EditorSelection } from "@codemirror/state";
 import { EditorView, runScopeHandlers, type Panel, type ViewUpdate } from "@codemirror/view";
 import { SearchQuery, closeSearchPanel, findNext, findPrevious, getSearchQuery, replaceAll, replaceNext, setSearchQuery } from "@codemirror/search";
 import { setIcon } from "obsidian";
@@ -124,14 +125,30 @@ export function createSearchPanel(view: EditorView): Panel {
   dom.append(row1, row2);
   syncReplace();
 
-  function commit() {
+  /** Where an incremental search starts: the cursor when typing began, unless the user has moved since. */
+  let anchor = view.state.selection.main.from;
+  let lastJump: { from: number; to: number } | null = null;
+  function jumpToFirst() {
+    const q = getSearchQuery(view.state);
+    if (!q.search || !q.valid) return;
+    const sel = view.state.selection.main;
+    if (!lastJump || sel.from !== lastJump.from || sel.to !== lastJump.to) anchor = sel.from;
+    let m = q.getCursor(view.state, anchor).next();
+    if (m.done) m = q.getCursor(view.state, 0).next(); // wrap around
+    if (m.done) return;
+    const { from, to } = m.value;
+    lastJump = { from, to };
+    view.dispatch({ selection: EditorSelection.single(from, to), effects: EditorView.scrollIntoView(from, { y: "center" }), userEvent: "select.search" });
+  }
+  function commit(jump = true) {
     const q = new SearchQuery({ search: findInput.value, caseSensitive, regexp, wholeWord, replace: replaceInput.value });
     const cur = getSearchQuery(view.state);
     if (!q.eq(cur)) view.dispatch({ effects: setSearchQuery.of(q) });
     else updateCount();
+    if (jump) jumpToFirst(); // show the first match right away, without waiting for Enter
   }
-  findInput.addEventListener("input", commit);
-  replaceInput.addEventListener("input", commit);
+  findInput.addEventListener("input", () => commit());
+  replaceInput.addEventListener("input", () => commit(false));
 
   function updateCount() {
     const q = getSearchQuery(view.state);

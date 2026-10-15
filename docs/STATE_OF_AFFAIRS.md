@@ -1,6 +1,6 @@
 # TeXPane: state of affairs
 
-*Last updated 14 Oct 2026, version 0.2.3. Keep this file current: update it with every release (newest entry on top of the log).*
+*Last updated 14 Oct 2026, version 0.2.4. Keep this file current: update it with every release (newest entry on top of the log).*
 
 ## In one paragraph
 TeXPane is a **beta**. The editor, PDF preview, log drawer, find and replace, `\obsidian{}` embeds and the LaTeX projects panel (Σ) are in daily use by the author on macOS, and the Σ panel, the editor and the Lean chips have been seen working in real Obsidian. The Lean integration (new in 0.2.0) and the delete actions are newer and mostly tested only automatically. Nobody other than the author has tried it yet.
@@ -37,6 +37,7 @@ Checklist: `docs/MANUAL_TEST.md`. Highest priority: delete from the panel, the b
 - Community store submission once the interface has had more use.
 
 ## Log (newest first)
+- **0.2.4**: Cmd/Ctrl+F now jumps to and selects the first match while you type (no Enter needed).
 - **0.2.3**: tighter indentation in the Σ panel tree.
 - **0.2.2**: fixed missing syntax colours (colour marks are now applied directly).
 - **0.2.1**: delete project, file or folder from the Σ panel, with confirmation, to the trash.
