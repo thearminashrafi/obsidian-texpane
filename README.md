@@ -2,7 +2,7 @@
 
 An Overleaf-style LaTeX workspace inside Obsidian (desktop only, macOS first): a CodeMirror 6 editor, a live PDF preview and a log drawer in one tab, plus `\obsidian{Note}` to embed vault notes in your document. Compilation runs locally with `latexmk`.
 
-> **Beta.** Tested automatically (including real `latexmk` builds), but young. Full walkthrough: **[User guide](docs/USER_GUIDE.md)**. Problems: [open an issue](../../issues/new/choose).
+> **Beta.** Tested automatically (including real `latexmk` builds), but young. Full walkthrough: **[User guide](docs/USER_GUIDE.md)**. Current status and plans: [State of affairs](docs/STATE_OF_AFFAIRS.md). Problems: [open an issue](../../issues/new/choose).
 
 ## Requirements
 
